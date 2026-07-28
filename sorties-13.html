@@ -328,6 +328,29 @@
     padding:10px 16px; text-align:center; line-height:1.5;
   }
   .config-warning code{background:#00000040; padding:1px 5px; border-radius:2px;}
+
+  #adminZone{display:flex; align-items:center; gap:6px;}
+  .admin-badge{
+    position:relative; background:var(--pin); color:#fff8ec; border-color:var(--pin);
+  }
+  .admin-badge .count{
+    position:absolute; top:-6px; right:-6px; background:#fff8ec; color:var(--pin);
+    border-radius:50%; width:16px; height:16px; font-size:10px; display:flex; align-items:center; justify-content:center;
+  }
+  .mod-item{
+    background:var(--paper); padding:12px 14px; margin-bottom:10px; border-radius:3px;
+    box-shadow:0 2px 6px #00000020;
+  }
+  .mod-item h4{margin:0 0 4px; font-family:'Big Shoulders Display',sans-serif; font-size:18px; text-transform:uppercase;}
+  .mod-item .mod-meta{font-family:'Space Mono',monospace; font-size:11px; color:var(--ink-soft); margin-bottom:8px;}
+  .mod-item .mod-desc{font-size:13.5px; margin-bottom:10px; color:var(--ink-soft);}
+  .mod-actions{display:flex; gap:8px;}
+  .mod-actions button{
+    flex:1; border:none; border-radius:3px; padding:8px; font-family:'Space Mono',monospace; font-size:12px; cursor:pointer;
+  }
+  .mod-approve{background:var(--cyprus); color:#fff8ec;}
+  .mod-reject{background:#00000015; color:var(--ink);}
+  .login-form{display:flex; flex-direction:column; gap:8px;}
 </style>
 </head>
 <body>
@@ -341,6 +364,7 @@
       <div class="mode-toggle">
         <button class="pill mode-pill" id="modeBoard">📌 Panneau</button>
         <button class="pill mode-pill" id="modeScroll">📱 Scroll</button>
+        <div id="adminZone"></div>
       </div>
     </div>
     <div class="filters" id="filters"></div>
@@ -358,10 +382,12 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
-  getFirestore, collection, addDoc, doc, updateDoc, onSnapshot,
+  getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot,
   query, where, orderBy, arrayUnion, arrayRemove, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import {
+  getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
 // 🔧 À REMPLACER : colle ici la config de TON projet Firebase
 // (Console Firebase > Paramètres du projet > Tes applications > SDK config)
@@ -375,6 +401,10 @@ const firebaseConfig = {
 };
 
 const CONFIG_READY = firebaseConfig.apiKey !== "YOUR_API_KEY";
+
+// 🔧 À REMPLACER une fois ton compte admin créé (voir instructions) :
+// Firebase Console > Authentication > Users > copie ton UID ici.
+const ADMIN_UID = "p3ylIcwSM1MkmuJGW2G2rPz3vSy2";
 
 const CATS = ["Marché","Concert","Fête","Nature","Expo","Feu"];
 const VILLES = ["Marseille","Aix-en-Provence","Arles","Salon-de-Provence","Martigues","Cassis","La Ciotat","Velaux","Istres"];
@@ -424,7 +454,8 @@ const DEMO_SORTIES = [
    images:[]}
 ];
 
-let app, db, auth, currentUid = null;
+let app, db, auth, currentUid = null, isAdmin = false;
+let pendingSorties = [];
 let sorties = [];
 let activeCat = "Toutes";
 let activeVille = "Toutes";
@@ -448,14 +479,32 @@ function todayStr(){
 }
 
 function startListening(){
-  const q = query(collection(db,'sorties'), where('date','>=', todayStr()), orderBy('date','asc'));
+  const q = query(collection(db,'sorties'), where('status','==','published'), where('date','>=', todayStr()), orderBy('date','asc'));
   onSnapshot(q, snap=>{
     sorties = snap.docs.map(d=>({id:d.id, ...d.data()}));
     render();
   }, err=>{
     console.error(err);
-    showConfigWarning("Erreur Firestore : " + err.message + ". Vérifie les règles de sécurité et que l'index date existe (le lien pour le créer apparaît dans la console du navigateur).");
+    showConfigWarning("Erreur Firestore : " + err.message + ". Vérifie les règles de sécurité et que l'index existe (le lien pour le créer apparaît dans la console du navigateur).");
   });
+}
+
+function startPendingListening(){
+  const q = query(collection(db,'sorties'), where('status','==','pending'), orderBy('createdAt','desc'));
+  onSnapshot(q, snap=>{
+    pendingSorties = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    renderAdminBadge();
+    if(document.getElementById('modOverlay')) renderModPanel();
+  }, err=>{
+    console.error(err);
+  });
+}
+
+function updateAdminState(user){
+  isAdmin = !!(user && !user.isAnonymous && user.uid === ADMIN_UID);
+  renderAdminBadge();
+  if(isAdmin) startPendingListening();
+  else pendingSorties = [];
 }
 
 if(CONFIG_READY){
@@ -463,11 +512,17 @@ if(CONFIG_READY){
   db = getFirestore(app);
   auth = getAuth(app);
   onAuthStateChanged(auth, user=>{
-    if(user){ currentUid = user.uid; startListening(); }
-  });
-  signInAnonymously(auth).catch(err=>{
-    console.error(err);
-    showConfigWarning("Connexion Firebase impossible : " + err.message);
+    if(user){
+      currentUid = user.uid;
+      updateAdminState(user);
+      startListening();
+      render();
+    } else {
+      signInAnonymously(auth).catch(err=>{
+        console.error(err);
+        showConfigWarning("Connexion Firebase impossible : " + err.message);
+      });
+    }
   });
 } else {
   showConfigWarning("Configure ta clé Firebase dans le &lt;script&gt; (objet <code>firebaseConfig</code>) pour activer la sauvegarde. Sans ça, rien n'est persistant.");
@@ -517,18 +572,27 @@ function renderFilters(){
 }
 
 async function seedDemoData(){
-  if(!CONFIG_READY){ alert("Configure Firebase avant d'importer les exemples."); return; }
-  for(const item of DEMO_SORTIES){
-    await addDoc(collection(db,'sorties'), {
-      ...item, votedBy:[], commentaires:[], createdAt: serverTimestamp()
-    });
+  if(!isAdmin){ alert("Connecte-toi en admin pour importer les exemples."); return; }
+  try{
+    for(const item of DEMO_SORTIES){
+      await addDoc(collection(db,'sorties'), {
+        ...item, status:'published', votedBy:[], commentaires:[], createdAt: serverTimestamp()
+      });
+    }
+  }catch(err){
+    console.error(err);
+    showConfigWarning("Erreur à l'import : " + err.message + " (uid actuel : " + currentUid + ", isAdmin=" + isAdmin + ")");
+    const b = document.getElementById('seedBtn');
+    if(b){ b.disabled = false; b.textContent = "＋ Importer 9 sorties d'exemple"; }
   }
 }
 
 function emptyStateHtml(forScroll){
-  const btn = CONFIG_READY
+  const btn = isAdmin
     ? `<button class="seed-btn" id="seedBtn">＋ Importer 9 sorties d'exemple</button>`
-    : `<div style="margin-top:10px; opacity:0.8;">Configure Firebase pour publier des sorties.</div>`;
+    : CONFIG_READY
+      ? `<div style="margin-top:10px; opacity:0.8;">Publie une sortie, elle apparaîtra ici une fois validée.</div>`
+      : `<div style="margin-top:10px; opacity:0.8;">Configure Firebase pour publier des sorties.</div>`;
   if(forScroll){
     return `<div class="scroll-card sc-Marché" data-emoji="🧺" style="justify-content:center; align-items:center; text-align:center;">
       <div><h2 style="max-width:100%;">Rien ici</h2><div class="scroll-desc" style="max-width:100%;">Change de filtre ou publie la première sortie.</div>${btn}</div>
@@ -540,6 +604,89 @@ function emptyStateHtml(forScroll){
 function bindSeedBtn(el){
   const b = el.querySelector('#seedBtn');
   if(b) b.onclick = ()=>{ b.disabled = true; b.textContent = 'Import en cours...'; seedDemoData(); };
+}
+
+function renderAdminBadge(){
+  const el = document.getElementById('adminZone');
+  if(!el) return;
+  if(isAdmin){
+    el.innerHTML = `
+      <button class="pill admin-badge" id="modBtn">🛡️ Modération${pendingSorties.length ? `<span class="count">${pendingSorties.length}</span>` : ''}</button>
+      <button class="pill" id="logoutBtn">Déconnexion</button>
+    `;
+    document.getElementById('modBtn').onclick = openModPanel;
+    document.getElementById('logoutBtn').onclick = ()=>{
+      signOut(auth).then(()=> signInAnonymously(auth));
+    };
+  } else {
+    el.innerHTML = `<button class="pill" id="adminLoginBtn">🔑 Admin</button>`;
+    document.getElementById('adminLoginBtn').onclick = openLoginForm;
+  }
+}
+
+function openLoginForm(){
+  document.getElementById('modalRoot').innerHTML = `
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <button class="close" id="closeModal">✕ fermer</button>
+      <h2>Connexion admin</h2>
+      <div class="login-form">
+        <label>Email</label><input type="email" id="adm-email">
+        <label>Mot de passe</label><input type="password" id="adm-pass">
+        <button class="submit" id="adm-submit">Se connecter</button>
+        <div id="adm-error" style="color:var(--pin); font-family:'Space Mono',monospace; font-size:12px;"></div>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('overlay').onclick = (e)=>{ if(e.target.id==='overlay') closeModal(); };
+  document.getElementById('closeModal').onclick = closeModal;
+  document.getElementById('adm-submit').onclick = ()=>{
+    const email = document.getElementById('adm-email').value.trim();
+    const pass = document.getElementById('adm-pass').value;
+    signInWithEmailAndPassword(auth, email, pass)
+      .then(()=> closeModal())
+      .catch(err=>{ document.getElementById('adm-error').textContent = "Échec : " + err.message; });
+  };
+}
+
+function openModPanel(){
+  document.getElementById('modalRoot').innerHTML = `
+  <div class="overlay" id="modOverlay">
+    <div class="modal">
+      <button class="close" id="closeModal">✕ fermer</button>
+      <h2>Modération</h2>
+      <div id="modList"></div>
+    </div>
+  </div>`;
+  document.getElementById('modOverlay').onclick = (e)=>{ if(e.target.id==='modOverlay') closeModal(); };
+  document.getElementById('closeModal').onclick = closeModal;
+  renderModPanel();
+}
+
+function renderModPanel(){
+  const el = document.getElementById('modList');
+  if(!el) return;
+  if(pendingSorties.length===0){
+    el.innerHTML = `<div style="font-family:'Space Mono',monospace; font-size:13px; color:var(--ink-soft);">Aucune sortie en attente. 👍</div>`;
+    return;
+  }
+  el.innerHTML = pendingSorties.map(s=>`
+    <div class="mod-item">
+      <span class="flyer-cat ${catClass(s.cat)}">${s.cat}</span>
+      <h4>${s.titre}</h4>
+      <div class="mod-meta">${s.date} · ${s.heure} · ${s.ville}</div>
+      <div class="mod-desc">${s.desc}</div>
+      <div class="mod-actions">
+        <button class="mod-approve" data-approve="${s.id}">✅ Publier</button>
+        <button class="mod-reject" data-reject="${s.id}">🗑 Refuser</button>
+      </div>
+    </div>`).join('');
+  el.querySelectorAll('[data-approve]').forEach(btn=>{
+    btn.onclick = ()=> updateDoc(doc(db,'sorties',btn.dataset.approve), {status:'published'});
+  });
+  el.querySelectorAll('[data-reject]').forEach(btn=>{
+    btn.onclick = ()=> deleteDoc(doc(db,'sorties',btn.dataset.reject));
+  });
 }
 
 function renderBoard(){
@@ -752,7 +899,8 @@ function openPublishForm(){
       <div style="margin-top:14px; font-family:'Space Mono',monospace; font-size:11.5px; color:var(--ink-soft); background:#fffdf6; border:1px dashed #b6935c88; border-radius:4px; padding:10px;">
         📷 Ajout de photos temporairement désactivé (en attente de l'activation de Firebase Storage).
       </div>
-      <button class="submit" id="f-submit">Publier sur le panneau</button>
+      ${isAdmin ? '' : `<div style="margin-top:10px; font-family:'Space Mono',monospace; font-size:11.5px; color:var(--ink-soft);">ℹ️ Ta sortie sera visible après validation par un modérateur.</div>`}
+      <button class="submit" id="f-submit">${isAdmin ? 'Publier sur le panneau' : 'Soumettre pour validation'}</button>
     </div>
   </div>`;
   document.getElementById('overlay').onclick = (e)=>{ if(e.target.id==='overlay') closeModal(); };
@@ -774,6 +922,7 @@ function openPublishForm(){
         desc: document.getElementById('f-desc').value || "Pas de description.",
         extra: document.getElementById('f-extra').value.trim() || null,
         images: [],
+        status: isAdmin ? 'published' : 'pending',
         votedBy: [],
         commentaires: [],
         createdAt: serverTimestamp()
@@ -794,6 +943,7 @@ document.getElementById('modeScroll').onclick = ()=>{ viewMode='scroll'; render(
 
 function render(){
   renderModeToggle();
+  renderAdminBadge();
   renderFilters();
   renderBoard();
   renderScrollFeed();
