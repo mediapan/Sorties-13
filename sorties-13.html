@@ -109,6 +109,10 @@
     display:inline-block; font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1px;
     text-transform:uppercase; color:#fff; padding:3px 8px; margin-bottom:10px;
   }
+  .flyer-ville-tag{
+    font-family:'Big Shoulders Display',sans-serif; font-weight:700; font-size:13px;
+    color:var(--ochre); white-space:nowrap;
+  }
   .cat-Marché{background:var(--cyprus);}
   .cat-Concert{background:var(--lavender);}
   .cat-Fête{background:var(--ochre);}
@@ -238,9 +242,15 @@
   .media-dots .dot{flex:1; max-width:36px; height:3px; border-radius:2px; background:#ffffff45;}
   .media-dots .dot.active{background:#fff8ec;}
 
-  .scroll-top{position:absolute; top:20px; left:26px; right:26px; z-index:3; display:flex; justify-content:space-between; align-items:center;}
-  .scroll-counter{font-family:'Space Mono',monospace; font-size:12px; background:#00000040; padding:5px 10px; border-radius:20px;}
+  .scroll-top{position:absolute; top:20px; left:26px; right:26px; z-index:3; display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
+  .scroll-top-left{display:flex; gap:6px; flex-wrap:wrap;}
+  .scroll-counter{font-family:'Space Mono',monospace; font-size:12px; background:#00000040; padding:5px 10px; border-radius:20px; flex:0 0 auto;}
   .scroll-cat-tag{font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:1px; background:#00000040; padding:5px 10px; border-radius:20px;}
+  .scroll-ville-tag{
+    font-family:'Big Shoulders Display',sans-serif; font-weight:700; font-size:15px; letter-spacing:0.3px;
+    background:var(--ochre); color:#fff8ec; padding:4px 12px 3px; border-radius:20px;
+    text-shadow:0 1px 2px #00000040; white-space:nowrap;
+  }
 
   .scroll-card h2, .scroll-card .scroll-meta, .scroll-card .scroll-desc, .scroll-card .desc-toggle, .scroll-card .scroll-hint{position:relative; z-index:3;}
 
@@ -756,9 +766,12 @@ function renderBoard(){
     return `
     <div class="flyer" data-id="${s.id}">
       ${s.images && s.images[0] ? `<img class="flyer-img" src="${s.images[0]}" alt="">` : ''}
-      <span class="flyer-cat ${catClass(s.cat)}">${s.cat}</span>
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:10px;">
+        <span class="flyer-cat ${catClass(s.cat)}" style="margin-bottom:0;">${s.cat}</span>
+        <span class="flyer-ville-tag">📍 ${s.ville}</span>
+      </div>
       <h3>${s.titre}</h3>
-      <div class="meta">${dateFmt} · ${upc[0].heure}${upc.length>1 ? ` <span style="opacity:0.7;">· +${upc.length-1} autre${upc.length>2?'s':''} date${upc.length>2?'s':''}</span>` : ''}<br>${s.ville}</div>
+      <div class="meta">${dateFmt} · ${upc[0].heure}${upc.length>1 ? ` <span style="opacity:0.7;">· +${upc.length-1} autre${upc.length>2?'s':''} date${upc.length>2?'s':''}</span>` : ''}</div>
       <div class="desc">${s.desc}</div>
       <div class="flyer-foot">
         <button class="vote-btn ${voted?'voted':''}" data-vote="${s.id}" ${CONFIG_READY?'':'disabled'}>🔥 ${votes}</button>
@@ -808,11 +821,14 @@ function buildScrollCardHtml(s, i, total){
   <div class="scroll-card sc-${s.cat} ${imgs.length?'has-media':''}" data-emoji="${CAT_EMOJI[s.cat]||'✨'}" data-id="${s.id}">
     ${mediaHtml}
     <div class="scroll-top">
-      <span class="scroll-cat-tag">${CAT_EMOJI[s.cat]||''} ${s.cat}</span>
+      <div class="scroll-top-left">
+        <span class="scroll-cat-tag">${CAT_EMOJI[s.cat]||''} ${s.cat}</span>
+        <span class="scroll-ville-tag">📍 ${s.ville}</span>
+      </div>
       <span class="scroll-counter">${i+1} / ${total}</span>
     </div>
     <h2>${s.titre}</h2>
-    <div class="scroll-meta">${dateBlockHtml}<br>📍 ${s.ville}</div>
+    <div class="scroll-meta">${dateBlockHtml}</div>
     <div class="scroll-desc">${expanded ? (s.desc + ' ' + (s.extra||'')) : s.desc}</div>
     ${s.extra ? `<button class="desc-toggle" data-toggle="${s.id}">${expanded ? '− moins' : '+ plus'}</button>` : ''}
     <div class="scroll-actions">
