@@ -249,16 +249,20 @@
     text-transform:uppercase; margin:0 0 12px; text-shadow:0 3px 10px #00000055; max-width:80%;
   }
   .scroll-meta{font-family:'Space Mono',monospace; font-size:13px; margin-bottom:10px; opacity:0.92; line-height:1.7;}
-  .date-strip{
-    display:flex; gap:6px; overflow-x:auto; touch-action:pan-x; scroll-snap-type:x proximity;
-    padding-bottom:2px; margin-bottom:2px; max-width:220px; scrollbar-width:none;
+  .date-swipe{max-width:230px;}
+  .date-swipe-track{
+    display:flex; overflow-x:auto; touch-action:pan-x; scroll-snap-type:x mandatory;
+    scrollbar-width:none;
   }
-  .date-strip::-webkit-scrollbar{display:none;}
-  .date-chip{
-    flex:0 0 auto; scroll-snap-align:start; background:#00000045; border:1px solid #ffffff35;
-    border-radius:10px; padding:5px 10px; font-size:11px; text-align:center; line-height:1.4; white-space:nowrap;
+  .date-swipe-track::-webkit-scrollbar{display:none;}
+  .date-slide{
+    flex:0 0 100%; scroll-snap-align:start; white-space:nowrap;
+    background:#00000045; border:1px solid #ffffff35; border-radius:8px;
+    padding:4px 10px; font-size:12.5px;
   }
-  .date-chip span{opacity:0.8;}
+  .date-dots{display:flex; gap:4px; margin-top:4px;}
+  .date-dots .ddot{width:5px; height:5px; border-radius:50%; background:#ffffff40;}
+  .date-dots .ddot.active{background:#fff8ec;}
   .scroll-desc{font-size:16px; line-height:1.5; max-width:78%; font-style:italic; text-shadow:0 2px 6px #00000040;}
   .desc-toggle{
     background:none; border:none; color:#f3e6c8; font-family:'Space Mono',monospace; font-size:12px;
@@ -792,11 +796,14 @@ function buildScrollCardHtml(s, i, total){
     ${imgs.length>1 ? `<div class="media-dots">${imgs.map((_,di)=>`<span class="dot ${di===0?'active':''}"></span>`).join('')}</div>` : ''}
   ` : '';
   const dateBlockHtml = upc.length > 1
-    ? `<div class="date-strip">${upc.map(dt=>{
-        const dd = new Date(dt.date + 'T00:00:00');
-        const lbl = dd.toLocaleDateString('fr-FR', {weekday:'short', day:'2-digit', month:'short'});
-        return `<div class="date-chip">${lbl}<br><span>${dt.heure}</span></div>`;
-      }).join('')}</div>`
+    ? `<div class="date-swipe">
+        <div class="date-swipe-track">${upc.map(dt=>{
+          const dd = new Date(dt.date + 'T00:00:00');
+          const lbl = dd.toLocaleDateString('fr-FR', {weekday:'short', day:'2-digit', month:'short'});
+          return `<div class="date-slide">${lbl} · ${dt.heure}</div>`;
+        }).join('')}</div>
+        <div class="date-dots">${upc.map((_,di)=>`<span class="ddot ${di===0?'active':''}"></span>`).join('')}</div>
+      </div>`
     : `${dateFmt} · ${primary.heure}`;
   return `
   <div class="scroll-card sc-${s.cat} ${imgs.length?'has-media':''}" data-emoji="${CAT_EMOJI[s.cat]||'✨'}" data-id="${s.id}">
@@ -841,6 +848,16 @@ function renderScrollFeed(){
       const dotsWrap = strip.closest('.scroll-card').querySelector('.media-dots');
       if(dotsWrap){
         dotsWrap.querySelectorAll('.dot').forEach((d,di)=> d.classList.toggle('active', di===idx));
+      }
+    }, {passive:true});
+  });
+
+  el.querySelectorAll('.date-swipe-track').forEach(track=>{
+    track.addEventListener('scroll', ()=>{
+      const idx = Math.round(track.scrollLeft / track.clientWidth);
+      const dotsWrap = track.closest('.date-swipe').querySelector('.date-dots');
+      if(dotsWrap){
+        dotsWrap.querySelectorAll('.ddot').forEach((d,di)=> d.classList.toggle('active', di===idx));
       }
     }, {passive:true});
   });
