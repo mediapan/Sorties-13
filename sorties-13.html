@@ -126,7 +126,8 @@
     font-weight:700; font-size:23px; line-height:1.05; margin:0 0 8px;
     text-transform:uppercase; letter-spacing:0.3px;
   }
-  .flyer .meta{font-family:'Space Mono',monospace; font-size:11.5px; color:var(--ink-soft); margin-bottom:10px; line-height:1.6;}
+  .flyer .meta{font-family:'Space Mono',monospace; font-size:11.5px; color:var(--ink-soft); margin-bottom:6px; line-height:1.6;}
+  .flyer-address{font-family:'Space Mono',monospace; font-size:11px; color:var(--azure); margin-bottom:10px;}
   .flyer .desc{font-size:14px; color:var(--ink-soft); line-height:1.4; margin-bottom:14px; font-style:italic;}
   .flyer-foot{display:flex; align-items:center; justify-content:space-between; border-top:1px dashed #00000030; padding-top:10px;}
   .vote-btn{
@@ -172,7 +173,8 @@
     font-family:'Big Shoulders Display',sans-serif; font-size:15px; text-transform:uppercase; letter-spacing:0.5px; cursor:pointer;
   }
   .modal .submit:disabled{opacity:0.6; cursor:default;}
-  .detail-meta{font-family:'Space Mono',monospace; font-size:12px; color:var(--ink-soft); margin-bottom:12px; line-height:1.7;}
+  .detail-meta{font-family:'Space Mono',monospace; font-size:12px; color:var(--ink-soft); margin-bottom:6px; line-height:1.7;}
+  .detail-address{font-family:'Space Mono',monospace; font-size:12px; color:var(--azure); margin-bottom:12px;}
   .detail-desc{font-size:15px; line-height:1.5; margin-bottom:18px;}
   .comments{border-top:1px dashed #00000030; padding-top:14px;}
   .comment{font-size:13.5px; margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #00000012;}
@@ -258,7 +260,8 @@
     font-family:'Big Shoulders Display',sans-serif; font-weight:900; font-size:44px; line-height:1.02;
     text-transform:uppercase; margin:0 0 12px; text-shadow:0 3px 10px #00000055; max-width:80%;
   }
-  .scroll-meta{font-family:'Space Mono',monospace; font-size:13px; margin-bottom:10px; opacity:0.92; line-height:1.7;}
+  .scroll-meta{font-family:'Space Mono',monospace; font-size:13px; margin-bottom:6px; opacity:0.92; line-height:1.7;}
+  .scroll-address{font-family:'Space Mono',monospace; font-size:12px; opacity:0.85; margin-bottom:10px; color:#cde8e0;}
   .date-swipe{max-width:230px; overflow:hidden;}
   .date-swipe-track{
     display:flex; touch-action:pan-y;
@@ -455,47 +458,47 @@ function lastDate(dates){
 }
 
 const DEMO_SORTIES = [
-  {titre:"Marché nocturne des Docks", cat:"Marché", ville:"Marseille",
+  {titre:"Marché nocturne des Docks", cats:["Marché","Fête"], ville:"Marseille", adresse:"10 Place aux Huiles, 13002 Marseille",
    dates:[{date:"2026-08-01",heure:"18h–23h"},{date:"2026-08-08",heure:"18h–23h"},{date:"2026-08-15",heure:"18h–23h"}],
    desc:"Producteurs locaux, foodtrucks et DJ set au coucher du soleil sur le port.",
    extra:"Accès libre, une trentaine de stands attendus. Parking conseillé au parking des Docks (payant après 19h). Buvette et zone enfants sur place.",
    images:[demoImg('#3f5c44','Stand producteurs'), demoImg('#2c6b86','Vue sur le port'), demoImg('#c25a25','DJ set au coucher du soleil')]},
-  {titre:"Feu d'artifice de la Frégate", cat:"Feu", ville:"Cassis",
+  {titre:"Feu d'artifice de la Frégate", cats:["Feu"], ville:"Cassis",
    dates:[{date:"2026-08-15",heure:"22h30"}],
    desc:"Tir depuis le port, meilleure vue depuis la calanque de Port-Miou en arrivant tôt.",
    extra:"Centre-ville fermé à la circulation dès 20h. Comptez 20 min de tir, suivi d'un bal populaire place Baragnon.",
    images:[]},
-  {titre:"Festival Lyrique en plein air", cat:"Concert", ville:"Aix-en-Provence",
+  {titre:"Festival Lyrique en plein air", cats:["Concert"], ville:"Aix-en-Provence",
    dates:[{date:"2026-08-04",heure:"20h"}],
    desc:"Extraits d'opéra dans la cour de l'Archevêché, places debout gratuites.",
    extra:"Ouverture des portes à 19h, jauge limitée à 400 personnes debout. Apportez un coussin ou un tabouret pliant.",
    images:[]},
-  {titre:"Rando Calanque de Port-Miou → En-Vau", cat:"Nature", ville:"Cassis",
+  {titre:"Rando Calanque de Port-Miou → En-Vau", cats:["Nature"], ville:"Cassis",
    dates:[{date:"2026-08-09",heure:"7h30"}],
    desc:"Départ groupé au frais, 3h de marche, prévoir eau et chaussures fermées.",
    extra:"Rendez-vous au parking du Pas de la Colle, groupe limité à 15 personnes sur inscription.",
    images:[]},
-  {titre:"Fête votive de Velaux", cat:"Fête", ville:"Velaux",
+  {titre:"Fête votive de Velaux", cats:["Fête"], ville:"Velaux", adresse:"Place de la Mairie, 13880 Velaux",
    dates:[{date:"2026-08-22",heure:"toute la journée"}],
    desc:"Manèges, encierro provençal, bal populaire le soir sur la place du village.",
    extra:"Lâcher de vachettes à 17h, repas de quartier à 19h30 sur réservation en mairie, bal à partir de 22h.",
    images:[demoImg('#c25a25','Encierro provençal'), demoImg('#6c5b8f','Bal populaire')]},
-  {titre:"Expo photo — Étangs de Camargue", cat:"Expo", ville:"Arles",
+  {titre:"Expo photo — Étangs de Camargue", cats:["Expo","Découverte"], ville:"Arles",
    dates:[{date:"2026-08-05",heure:"10h–19h"},{date:"2026-08-19",heure:"10h–19h"}],
    desc:"Cinquante tirages sur les flamants roses et manades, entrée libre.",
    extra:"Exposition installée dans la chapelle Sainte-Anne, climatisée. Visite guidée à 15h tous les jours.",
    images:[]},
-  {titre:"Vide-grenier du Vieux Salon", cat:"Marché", ville:"Salon-de-Provence",
+  {titre:"Vide-grenier du Vieux Salon", cats:["Marché"], ville:"Salon-de-Provence",
    dates:[{date:"2026-08-30",heure:"7h–14h"}],
    desc:"Plus de 150 exposants dans les ruelles du centre historique.",
    extra:"Accès piéton uniquement dans le centre historique, parkings gratuits en périphérie avec navette.",
    images:[]},
-  {titre:"Concert Étang de Berre — soirée jazz", cat:"Concert", ville:"Martigues",
+  {titre:"Concert Étang de Berre — soirée jazz", cats:["Concert"], ville:"Martigues",
    dates:[{date:"2026-08-12",heure:"21h"}],
    desc:"Scène flottante face au canal, gratuit, transats fournis.",
    extra:"Places limitées à 300 transats, arrivée conseillée dès 20h.",
    images:[]},
-  {titre:"Balade nocturne dans la Réserve de Sainte-Croix", cat:"Nature", ville:"Istres",
+  {titre:"Balade nocturne dans la Réserve de Sainte-Croix", cats:["Nature","Découverte"], ville:"Istres",
    dates:[{date:"2026-08-18",heure:"20h30"}],
    desc:"Observation des oiseaux au crépuscule avec un guide naturaliste, sur inscription.",
    extra:"Groupe limité à 12 personnes, inscription obligatoire auprès de l'office de tourisme.",
@@ -586,7 +589,7 @@ function upcomingDates(s){
 
 function getFilteredList(){
   let list = sorties.filter(s=>
-    (activeCat==='Toutes' || s.cat===activeCat) &&
+    (activeCat==='Toutes' || (s.cats||[]).includes(activeCat)) &&
     (activeVille==='Toutes' || s.ville===activeVille) &&
     upcomingDates(s).length > 0
   );
@@ -729,7 +732,7 @@ function renderModPanel(){
   }
   el.innerHTML = pendingSorties.map(s=>`
     <div class="mod-item">
-      <span class="flyer-cat ${catClass(s.cat)}">${s.cat}</span>
+      ${(s.cats||[]).map(c=>`<span class="flyer-cat ${catClass(c)}">${c}</span>`).join('')}
       <h4>${s.titre}</h4>
       <div class="mod-meta">${(s.dates && s.dates[0]) ? (s.dates[0].date + ' · ' + s.dates[0].heure) : ''} · ${s.ville}</div>
       <div class="mod-desc">${s.desc}</div>
@@ -767,11 +770,14 @@ function renderBoard(){
     <div class="flyer" data-id="${s.id}">
       ${s.images && s.images[0] ? `<img class="flyer-img" src="${s.images[0]}" alt="">` : ''}
       <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:10px;">
-        <span class="flyer-cat ${catClass(s.cat)}" style="margin-bottom:0;">${s.cat}</span>
+        <div style="display:flex; gap:4px; flex-wrap:wrap;">
+          ${(s.cats||[]).map(c=>`<span class="flyer-cat ${catClass(c)}" style="margin-bottom:0;">${c}</span>`).join('')}
+        </div>
         <span class="flyer-ville-tag">📍 ${s.ville}</span>
       </div>
       <h3>${s.titre}</h3>
       <div class="meta">${dateFmt} · ${upc[0].heure}${upc.length>1 ? ` <span style="opacity:0.7;">· +${upc.length-1} autre${upc.length>2?'s':''} date${upc.length>2?'s':''}</span>` : ''}</div>
+      ${s.adresse ? `<div class="flyer-address">📫 ${s.adresse}</div>` : ''}
       <div class="desc">${s.desc}</div>
       <div class="flyer-foot">
         <button class="vote-btn ${voted?'voted':''}" data-vote="${s.id}" ${CONFIG_READY?'':'disabled'}>🔥 ${votes}</button>
@@ -817,18 +823,20 @@ function buildScrollCardHtml(s, i, total){
         <div class="date-dots">${upc.map((_,di)=>`<span class="ddot ${di===0?'active':''}"></span>`).join('')}</div>
       </div>`
     : `${dateFmt} · ${primary.heure}`;
+  const primaryCat = (s.cats && s.cats[0]) || 'Découverte';
   return `
-  <div class="scroll-card sc-${s.cat} ${imgs.length?'has-media':''}" data-emoji="${CAT_EMOJI[s.cat]||'✨'}" data-id="${s.id}">
+  <div class="scroll-card sc-${primaryCat} ${imgs.length?'has-media':''}" data-emoji="${CAT_EMOJI[primaryCat]||'✨'}" data-id="${s.id}">
     ${mediaHtml}
     <div class="scroll-top">
       <div class="scroll-top-left">
-        <span class="scroll-cat-tag">${CAT_EMOJI[s.cat]||''} ${s.cat}</span>
+        ${(s.cats||[]).map(c=>`<span class="scroll-cat-tag">${CAT_EMOJI[c]||''} ${c}</span>`).join('')}
         <span class="scroll-ville-tag">📍 ${s.ville}</span>
       </div>
       <span class="scroll-counter">${i+1} / ${total}</span>
     </div>
     <h2>${s.titre}</h2>
     <div class="scroll-meta">${dateBlockHtml}</div>
+    ${s.adresse ? `<div class="scroll-address">📫 ${s.adresse}</div>` : ''}
     <div class="scroll-desc">${expanded ? (s.desc + ' ' + (s.extra||'')) : s.desc}</div>
     ${s.extra ? `<button class="desc-toggle" data-toggle="${s.id}">${expanded ? '− moins' : '+ plus'}</button>` : ''}
     <div class="scroll-actions">
@@ -982,12 +990,16 @@ function openDetail(id){
   <div class="overlay" id="overlay">
     <div class="modal">
       <button class="close" id="closeModal">✕ fermer</button>
-      <span class="flyer-cat ${catClass(s.cat)}">${s.cat}</span>
+      <div style="display:flex; gap:4px; flex-wrap:wrap;">
+        ${(s.cats||[]).map(c=>`<span class="flyer-cat ${catClass(c)}">${c}</span>`).join('')}
+      </div>
       <h2>${s.titre}</h2>
       <div class="detail-meta">${datesHtml}<br>📍 ${s.ville}</div>
+      ${s.adresse ? `<div class="detail-address">📫 ${s.adresse}</div>` : ''}
       <div class="detail-desc">${s.desc}${s.extra ? ' ' + s.extra : ''}</div>
-      <div class="flyer-foot" style="margin-bottom:14px;">
+      <div class="flyer-foot" style="margin-bottom:14px; flex-wrap:wrap; gap:8px;">
         <button class="vote-btn ${voted?'voted':''}" data-vote="${s.id}" ${CONFIG_READY?'':'disabled'}>🔥 ${votes} — j'y vais</button>
+        ${isAdmin ? `<button class="vote-btn" id="editBtn">✏️ Modifier</button>` : ''}
         ${isAdmin ? `<button class="vote-btn" id="deleteBtn" style="border-color:var(--pin); color:var(--pin);">🗑 Supprimer</button>` : ''}
       </div>
       <div class="comments">
@@ -1019,6 +1031,7 @@ function openDetail(id){
         closeModal();
       }
     };
+    document.getElementById('editBtn').onclick = ()=> openPublishForm(s);
   }
 }
 
@@ -1026,7 +1039,7 @@ function closeModal(){
   document.getElementById('modalRoot').innerHTML = '';
 }
 
-function openPublishForm(){
+function openPublishForm(editing){
   if(!isAdmin){
     alert("Seul l'administrateur peut publier une sortie.");
     return;
@@ -1035,32 +1048,43 @@ function openPublishForm(){
     alert("Configure ta clé Firebase dans le code (objet firebaseConfig) avant de pouvoir publier.");
     return;
   }
+  const isEdit = !!editing;
   document.getElementById('modalRoot').innerHTML = `
   <div class="overlay" id="overlay">
     <div class="modal">
       <button class="close" id="closeModal">✕ fermer</button>
-      <h2>Publier une sortie</h2>
-      <label>Titre</label><input type="text" id="f-titre" placeholder="Ex : Marché aux santons">
-      <label>Catégorie</label>
-      <select id="f-cat">${CATS.map(c=>`<option value="${c}">${c}</option>`).join('')}</select>
+      <h2>${isEdit ? 'Modifier la sortie' : 'Publier une sortie'}</h2>
+      <label>Titre</label><input type="text" id="f-titre" placeholder="Ex : Marché aux santons" value="${isEdit ? editing.titre.replace(/"/g,'&quot;') : ''}">
+      <label>Catégories (plusieurs possibles)</label>
+      <div id="f-cats-list" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
+        ${CATS.map(c=>`
+          <label style="display:flex; align-items:center; gap:4px; font-family:'Space Mono',monospace; font-size:12px; background:#fffdf6; border:1px solid #b6935c88; border-radius:14px; padding:4px 10px; cursor:pointer;">
+            <input type="checkbox" class="f-cat-checkbox" value="${c}" ${isEdit && (editing.cats||[]).includes(c) ? 'checked' : ''}> ${c}
+          </label>
+        `).join('')}
+      </div>
       <label>Ville</label>
-      <select id="f-ville">${VILLES.map(v=>`<option value="${v}">${v}</option>`).join('')}</select>
+      <select id="f-ville">${VILLES.map(v=>`<option value="${v}" ${isEdit && editing.ville===v ? 'selected' : ''}>${v}</option>`).join('')}</select>
+      <label>Adresse (optionnelle)</label>
+      <input type="text" id="f-adresse" placeholder="Ex : 12 rue de la République" value="${isEdit && editing.adresse ? editing.adresse.replace(/"/g,'&quot;') : ''}">
       <label>Date(s)</label>
       <div id="f-dates-list"></div>
       <button type="button" class="seed-btn" id="f-add-date" style="margin-top:6px;">＋ Ajouter une date</button>
-      <label>Description</label><textarea id="f-desc" placeholder="Quelques mots pour donner envie d'y aller..."></textarea>
+      <label>Description</label><textarea id="f-desc" placeholder="Quelques mots pour donner envie d'y aller...">${isEdit ? editing.desc : ''}</textarea>
       <label>Détails supplémentaires (optionnel, affichés via "+ plus")</label>
-      <textarea id="f-extra" placeholder="Infos pratiques : parking, horaires, inscription..."></textarea>
+      <textarea id="f-extra" placeholder="Infos pratiques : parking, horaires, inscription...">${isEdit && editing.extra ? editing.extra : ''}</textarea>
       <div style="margin-top:14px; font-family:'Space Mono',monospace; font-size:11.5px; color:var(--ink-soft); background:#fffdf6; border:1px dashed #b6935c88; border-radius:4px; padding:10px;">
         📷 Ajout de photos temporairement désactivé (en attente de l'activation de Firebase Storage).
       </div>
-      <button class="submit" id="f-submit">Publier sur le panneau</button>
+      <button class="submit" id="f-submit">${isEdit ? 'Enregistrer les modifications' : 'Publier sur le panneau'}</button>
     </div>
   </div>`;
   document.getElementById('overlay').onclick = (e)=>{ if(e.target.id==='overlay') closeModal(); };
   document.getElementById('closeModal').onclick = closeModal;
 
-  let dateRows = [{date: todayStr(), heure: ''}];
+  let dateRows = isEdit && editing.dates && editing.dates.length
+    ? editing.dates.map(d=>({date:d.date, heure:d.heure}))
+    : [{date: todayStr(), heure: ''}];
   function renderDateRows(){
     const wrap = document.getElementById('f-dates-list');
     wrap.innerHTML = dateRows.map((row,idx)=>`
@@ -1091,38 +1115,48 @@ function openPublishForm(){
   document.getElementById('f-submit').onclick = async ()=>{
     const titre = document.getElementById('f-titre').value.trim();
     if(!titre){ document.getElementById('f-titre').focus(); return; }
+    const cats = [...document.querySelectorAll('.f-cat-checkbox:checked')].map(c=>c.value);
+    if(cats.length===0){ alert("Coche au moins une catégorie."); return; }
     const dates = dateRows.filter(r=>r.date).map(r=>({date:r.date, heure:r.heure || "à préciser"}))
       .sort((a,b)=>a.date.localeCompare(b.date));
     if(dates.length===0){ alert("Ajoute au moins une date."); return; }
     const submitBtn = document.getElementById('f-submit');
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Publication...';
+    submitBtn.textContent = isEdit ? 'Enregistrement...' : 'Publication...';
+    const payload = {
+      titre,
+      cats,
+      ville: document.getElementById('f-ville').value,
+      adresse: document.getElementById('f-adresse').value.trim() || null,
+      dates,
+      dateFin: dates[dates.length-1].date,
+      desc: document.getElementById('f-desc').value || "Pas de description.",
+      extra: document.getElementById('f-extra').value.trim() || null
+    };
     try{
-      await addDoc(collection(db,'sorties'), {
-        titre,
-        cat: document.getElementById('f-cat').value,
-        ville: document.getElementById('f-ville').value,
-        dates,
-        dateFin: dates[dates.length-1].date,
-        desc: document.getElementById('f-desc').value || "Pas de description.",
-        extra: document.getElementById('f-extra').value.trim() || null,
-        images: [],
-        status: 'published',
-        votedBy: [],
-        commentaires: [],
-        createdAt: serverTimestamp()
-      });
+      if(isEdit){
+        await updateDoc(doc(db,'sorties',editing.id), payload);
+      } else {
+        await addDoc(collection(db,'sorties'), {
+          ...payload,
+          images: [],
+          status: 'published',
+          votedBy: [],
+          commentaires: [],
+          createdAt: serverTimestamp()
+        });
+      }
       closeModal();
     }catch(err){
       console.error(err);
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Publier sur le panneau';
-      showConfigWarning("Erreur à la publication : " + err.message);
+      submitBtn.textContent = isEdit ? 'Enregistrer les modifications' : 'Publier sur le panneau';
+      showConfigWarning("Erreur : " + err.message);
     }
   };
 }
 
-document.getElementById('openPublish').onclick = openPublishForm;
+document.getElementById('openPublish').onclick = ()=> openPublishForm();
 document.getElementById('modeBoard').onclick = ()=>{ viewMode='board'; render(); };
 document.getElementById('modeScroll').onclick = ()=>{ viewMode='scroll'; render(); };
 
