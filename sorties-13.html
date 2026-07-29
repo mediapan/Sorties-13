@@ -19,6 +19,7 @@
     --cyprus:#3f5c44;
     --azure:#2c6b86;
     --pin:#8a2f22;
+    --teal:#2f8f7a;
     --paper-alt:#f0e6cd;
   }
   *{box-sizing:border-box;}
@@ -114,6 +115,7 @@
   .cat-Nature{background:var(--azure);}
   .cat-Expo{background:#8a6b3f;}
   .cat-Feu{background:var(--pin);}
+  .cat-Découverte{background:var(--teal);}
 
   .flyer h3{
     font-family:'Big Shoulders Display', sans-serif;
@@ -212,6 +214,7 @@
   .sc-Nature{background:radial-gradient(circle at 30% 20%, #4b93b3, var(--azure) 70%);}
   .sc-Expo{background:radial-gradient(circle at 30% 20%, #b08c53, #8a6b3f 70%);}
   .sc-Feu{background:radial-gradient(circle at 30% 20%, #c14f3c, var(--pin) 70%);}
+  .sc-Découverte{background:radial-gradient(circle at 30% 20%, #4fb39e, var(--teal) 70%);}
 
   .scroll-media{position:absolute; inset:0; z-index:0;}
   .media-strip{
@@ -246,6 +249,16 @@
     text-transform:uppercase; margin:0 0 12px; text-shadow:0 3px 10px #00000055; max-width:80%;
   }
   .scroll-meta{font-family:'Space Mono',monospace; font-size:13px; margin-bottom:10px; opacity:0.92; line-height:1.7;}
+  .date-strip{
+    display:flex; gap:6px; overflow-x:auto; touch-action:pan-x; scroll-snap-type:x proximity;
+    padding-bottom:2px; margin-bottom:2px; max-width:220px; scrollbar-width:none;
+  }
+  .date-strip::-webkit-scrollbar{display:none;}
+  .date-chip{
+    flex:0 0 auto; scroll-snap-align:start; background:#00000045; border:1px solid #ffffff35;
+    border-radius:10px; padding:5px 10px; font-size:11px; text-align:center; line-height:1.4; white-space:nowrap;
+  }
+  .date-chip span{opacity:0.8;}
   .scroll-desc{font-size:16px; line-height:1.5; max-width:78%; font-style:italic; text-shadow:0 2px 6px #00000040;}
   .desc-toggle{
     background:none; border:none; color:#f3e6c8; font-family:'Space Mono',monospace; font-size:12px;
@@ -367,7 +380,6 @@
         <div id="adminZone"></div>
       </div>
     </div>
-    <div class="filters" id="filters"></div>
   </div>
   <div class="content" id="content">
     <div class="board" id="board"></div>
@@ -375,7 +387,7 @@
   </div>
 </div>
 
-<button class="fab" id="openPublish">✎ Publier une sortie</button>
+<button class="fab" id="openPublish" style="display:none;">✎ Publier une sortie</button>
 
 <div id="modalRoot"></div>
 
@@ -406,49 +418,72 @@ const CONFIG_READY = firebaseConfig.apiKey !== "YOUR_API_KEY";
 // Firebase Console > Authentication > Users > copie ton UID ici.
 const ADMIN_UID = "p3ylIcwSM1MkmuJGW2G2rPz3vSy2";
 
-const CATS = ["Marché","Concert","Fête","Nature","Expo","Feu"];
-const VILLES = ["Marseille","Aix-en-Provence","Arles","Salon-de-Provence","Martigues","Cassis","La Ciotat","Velaux","Istres"];
-const CAT_EMOJI = {"Marché":"🧺","Concert":"🎵","Fête":"🎉","Nature":"🥾","Expo":"🖼️","Feu":"🎆"};
+const CATS = ["Marché","Concert","Fête","Nature","Expo","Feu","Découverte"];
+const VILLES = [
+  "Marseille","Aix-en-Provence","Arles","Martigues","Aubagne","Salon-de-Provence","Istres","Vitrolles",
+  "Marignane","Miramas","La Ciotat","Gardanne","Berre-l'Étang","Fos-sur-Mer","Port-de-Bouc",
+  "Châteauneuf-les-Martigues","Septèmes-les-Vallons","Les Pennes-Mirabeau","Rognac","Velaux","Ventabren",
+  "Éguilles","Cassis","La Fare-les-Oliviers","Lambesc","Pélissanne","Saint-Rémy-de-Provence","Tarascon",
+  "Châteaurenard","Trets","Gréasque","Peynier","Rousset","Meyreuil","Fuveau","Cabriès","Bouc-Bel-Air",
+  "Simiane-Collongue","Allauch","Plan-de-Cuques","Roquevaire","Auriol","La Bouilladisse","Cuges-les-Pins",
+  "Ceyreste","Carnoux-en-Provence","Gémenos","Peypin","Saint-Cannat","Lançon-Provence","Grans",
+  "Saint-Chamas","Sausset-les-Pins","Carry-le-Rouet","Le Rove","Ensuès-la-Redonne","Gignac-la-Nerthe",
+  "Maussane-les-Alpilles","Eyguières","Mallemort","Charleval","Sénas","Noves"
+];
+const CAT_EMOJI = {"Marché":"🧺","Concert":"🎵","Fête":"🎉","Nature":"🥾","Expo":"🖼️","Feu":"🎆","Découverte":"🧭"};
 
 function demoImg(bg, label){
   const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='700'><rect width='100%' height='100%' fill='${bg}'/><text x='50%' y='50%' font-family='sans-serif' font-size='30' fill='white' text-anchor='middle' dominant-baseline='middle'>${label}</text></svg>`;
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
+function lastDate(dates){
+  return dates.slice().sort((a,b)=>a.date.localeCompare(b.date)).slice(-1)[0].date;
+}
+
 const DEMO_SORTIES = [
-  {titre:"Marché nocturne des Docks", cat:"Marché", ville:"Marseille", date:"2026-08-01", heure:"18h–23h",
+  {titre:"Marché nocturne des Docks", cat:"Marché", ville:"Marseille",
+   dates:[{date:"2026-08-01",heure:"18h–23h"},{date:"2026-08-08",heure:"18h–23h"},{date:"2026-08-15",heure:"18h–23h"}],
    desc:"Producteurs locaux, foodtrucks et DJ set au coucher du soleil sur le port.",
    extra:"Accès libre, une trentaine de stands attendus. Parking conseillé au parking des Docks (payant après 19h). Buvette et zone enfants sur place.",
    images:[demoImg('#3f5c44','Stand producteurs'), demoImg('#2c6b86','Vue sur le port'), demoImg('#c25a25','DJ set au coucher du soleil')]},
-  {titre:"Feu d'artifice de la Frégate", cat:"Feu", ville:"Cassis", date:"2026-08-15", heure:"22h30",
+  {titre:"Feu d'artifice de la Frégate", cat:"Feu", ville:"Cassis",
+   dates:[{date:"2026-08-15",heure:"22h30"}],
    desc:"Tir depuis le port, meilleure vue depuis la calanque de Port-Miou en arrivant tôt.",
    extra:"Centre-ville fermé à la circulation dès 20h. Comptez 20 min de tir, suivi d'un bal populaire place Baragnon.",
    images:[]},
-  {titre:"Festival Lyrique en plein air", cat:"Concert", ville:"Aix-en-Provence", date:"2026-08-04", heure:"20h",
+  {titre:"Festival Lyrique en plein air", cat:"Concert", ville:"Aix-en-Provence",
+   dates:[{date:"2026-08-04",heure:"20h"}],
    desc:"Extraits d'opéra dans la cour de l'Archevêché, places debout gratuites.",
    extra:"Ouverture des portes à 19h, jauge limitée à 400 personnes debout. Apportez un coussin ou un tabouret pliant.",
    images:[]},
-  {titre:"Rando Calanque de Port-Miou → En-Vau", cat:"Nature", ville:"Cassis", date:"2026-08-09", heure:"7h30",
+  {titre:"Rando Calanque de Port-Miou → En-Vau", cat:"Nature", ville:"Cassis",
+   dates:[{date:"2026-08-09",heure:"7h30"}],
    desc:"Départ groupé au frais, 3h de marche, prévoir eau et chaussures fermées.",
    extra:"Rendez-vous au parking du Pas de la Colle, groupe limité à 15 personnes sur inscription.",
    images:[]},
-  {titre:"Fête votive de Velaux", cat:"Fête", ville:"Velaux", date:"2026-08-22", heure:"toute la journée",
+  {titre:"Fête votive de Velaux", cat:"Fête", ville:"Velaux",
+   dates:[{date:"2026-08-22",heure:"toute la journée"}],
    desc:"Manèges, encierro provençal, bal populaire le soir sur la place du village.",
    extra:"Lâcher de vachettes à 17h, repas de quartier à 19h30 sur réservation en mairie, bal à partir de 22h.",
    images:[demoImg('#c25a25','Encierro provençal'), demoImg('#6c5b8f','Bal populaire')]},
-  {titre:"Expo photo — Étangs de Camargue", cat:"Expo", ville:"Arles", date:"2026-08-05", heure:"10h–19h",
+  {titre:"Expo photo — Étangs de Camargue", cat:"Expo", ville:"Arles",
+   dates:[{date:"2026-08-05",heure:"10h–19h"},{date:"2026-08-19",heure:"10h–19h"}],
    desc:"Cinquante tirages sur les flamants roses et manades, entrée libre.",
    extra:"Exposition installée dans la chapelle Sainte-Anne, climatisée. Visite guidée à 15h tous les jours.",
    images:[]},
-  {titre:"Vide-grenier du Vieux Salon", cat:"Marché", ville:"Salon-de-Provence", date:"2026-08-30", heure:"7h–14h",
+  {titre:"Vide-grenier du Vieux Salon", cat:"Marché", ville:"Salon-de-Provence",
+   dates:[{date:"2026-08-30",heure:"7h–14h"}],
    desc:"Plus de 150 exposants dans les ruelles du centre historique.",
    extra:"Accès piéton uniquement dans le centre historique, parkings gratuits en périphérie avec navette.",
    images:[]},
-  {titre:"Concert Étang de Berre — soirée jazz", cat:"Concert", ville:"Martigues", date:"2026-08-12", heure:"21h",
+  {titre:"Concert Étang de Berre — soirée jazz", cat:"Concert", ville:"Martigues",
+   dates:[{date:"2026-08-12",heure:"21h"}],
    desc:"Scène flottante face au canal, gratuit, transats fournis.",
    extra:"Places limitées à 300 transats, arrivée conseillée dès 20h.",
    images:[]},
-  {titre:"Balade nocturne dans la Réserve de Sainte-Croix", cat:"Nature", ville:"Istres", date:"2026-08-18", heure:"20h30",
+  {titre:"Balade nocturne dans la Réserve de Sainte-Croix", cat:"Nature", ville:"Istres",
+   dates:[{date:"2026-08-18",heure:"20h30"}],
    desc:"Observation des oiseaux au crépuscule avec un guide naturaliste, sur inscription.",
    extra:"Groupe limité à 12 personnes, inscription obligatoire auprès de l'office de tourisme.",
    images:[]}
@@ -479,7 +514,7 @@ function todayStr(){
 }
 
 function startListening(){
-  const q = query(collection(db,'sorties'), where('status','==','published'), where('date','>=', todayStr()), orderBy('date','asc'));
+  const q = query(collection(db,'sorties'), where('status','==','published'), where('dateFin','>=', todayStr()), orderBy('dateFin','asc'));
   onSnapshot(q, snap=>{
     sorties = snap.docs.map(d=>({id:d.id, ...d.data()}));
     render();
@@ -530,13 +565,20 @@ if(CONFIG_READY){
 
 function catClass(c){ return "cat-" + c; }
 
+function upcomingDates(s){
+  const today = todayStr();
+  const list = (s.dates || (s.date ? [{date:s.date, heure:s.heure}] : [])).filter(d=>d.date >= today);
+  return list.sort((a,b)=>a.date.localeCompare(b.date));
+}
+
 function getFilteredList(){
   let list = sorties.filter(s=>
     (activeCat==='Toutes' || s.cat===activeCat) &&
-    (activeVille==='Toutes' || s.ville===activeVille)
+    (activeVille==='Toutes' || s.ville===activeVille) &&
+    upcomingDates(s).length > 0
   );
   if(sortMode==='hot') list = list.slice().sort((a,b)=>(b.votedBy||[]).length-(a.votedBy||[]).length);
-  else list = list.slice().sort((a,b)=>a.date.localeCompare(b.date));
+  else list = list.slice().sort((a,b)=> upcomingDates(a)[0].date.localeCompare(upcomingDates(b)[0].date));
   return list;
 }
 
@@ -576,7 +618,7 @@ async function seedDemoData(){
   try{
     for(const item of DEMO_SORTIES){
       await addDoc(collection(db,'sorties'), {
-        ...item, status:'published', votedBy:[], commentaires:[], createdAt: serverTimestamp()
+        ...item, dateFin: lastDate(item.dates), status:'published', votedBy:[], commentaires:[], createdAt: serverTimestamp()
       });
     }
   }catch(err){
@@ -608,6 +650,8 @@ function bindSeedBtn(el){
 
 function renderAdminBadge(){
   const el = document.getElementById('adminZone');
+  const fab = document.getElementById('openPublish');
+  if(fab) fab.style.display = isAdmin ? '' : 'none';
   if(!el) return;
   if(isAdmin){
     el.innerHTML = `
@@ -674,7 +718,7 @@ function renderModPanel(){
     <div class="mod-item">
       <span class="flyer-cat ${catClass(s.cat)}">${s.cat}</span>
       <h4>${s.titre}</h4>
-      <div class="mod-meta">${s.date} · ${s.heure} · ${s.ville}</div>
+      <div class="mod-meta">${(s.dates && s.dates[0]) ? (s.dates[0].date + ' · ' + s.dates[0].heure) : ''} · ${s.ville}</div>
       <div class="mod-desc">${s.desc}</div>
       <div class="mod-actions">
         <button class="mod-approve" data-approve="${s.id}">✅ Publier</button>
@@ -700,7 +744,8 @@ function renderBoard(){
   }
 
   el.innerHTML = list.map(s=>{
-    const d = new Date(s.date + 'T00:00:00');
+    const upc = upcomingDates(s);
+    const d = new Date(upc[0].date + 'T00:00:00');
     const dateFmt = d.toLocaleDateString('fr-FR', {day:'2-digit', month:'short'});
     const votes = (s.votedBy||[]).length;
     const voted = currentUid ? (s.votedBy||[]).includes(currentUid) : false;
@@ -710,7 +755,7 @@ function renderBoard(){
       ${s.images && s.images[0] ? `<img class="flyer-img" src="${s.images[0]}" alt="">` : ''}
       <span class="flyer-cat ${catClass(s.cat)}">${s.cat}</span>
       <h3>${s.titre}</h3>
-      <div class="meta">${dateFmt} · ${s.heure}<br>${s.ville}</div>
+      <div class="meta">${dateFmt} · ${upc[0].heure}${upc.length>1 ? ` <span style="opacity:0.7;">· +${upc.length-1} autre${upc.length>2?'s':''} date${upc.length>2?'s':''}</span>` : ''}<br>${s.ville}</div>
       <div class="desc">${s.desc}</div>
       <div class="flyer-foot">
         <button class="vote-btn ${voted?'voted':''}" data-vote="${s.id}" ${CONFIG_READY?'':'disabled'}>🔥 ${votes}</button>
@@ -727,6 +772,52 @@ function renderBoard(){
   });
 }
 
+function buildScrollCardHtml(s, i, total){
+  const upc = upcomingDates(s);
+  const primary = upc[0];
+  const dPrimary = new Date(primary.date + 'T00:00:00');
+  const dateFmt = dPrimary.toLocaleDateString('fr-FR', {weekday:'short', day:'2-digit', month:'short'});
+  const imgs = s.images || [];
+  const votes = (s.votedBy||[]).length;
+  const voted = currentUid ? (s.votedBy||[]).includes(currentUid) : false;
+  const comCount = (s.commentaires||[]).length;
+  const expanded = expandedIds.has(s.id);
+  const mediaHtml = imgs.length ? `
+    <div class="scroll-media">
+      <div class="media-strip">
+        ${imgs.map(url=>`<div class="media-slide" style="background-image:url('${url}')"></div>`).join('')}
+      </div>
+    </div>
+    <div class="scroll-overlay-gradient"></div>
+    ${imgs.length>1 ? `<div class="media-dots">${imgs.map((_,di)=>`<span class="dot ${di===0?'active':''}"></span>`).join('')}</div>` : ''}
+  ` : '';
+  const dateBlockHtml = upc.length > 1
+    ? `<div class="date-strip">${upc.map(dt=>{
+        const dd = new Date(dt.date + 'T00:00:00');
+        const lbl = dd.toLocaleDateString('fr-FR', {weekday:'short', day:'2-digit', month:'short'});
+        return `<div class="date-chip">${lbl}<br><span>${dt.heure}</span></div>`;
+      }).join('')}</div>`
+    : `${dateFmt} · ${primary.heure}`;
+  return `
+  <div class="scroll-card sc-${s.cat} ${imgs.length?'has-media':''}" data-emoji="${CAT_EMOJI[s.cat]||'✨'}" data-id="${s.id}">
+    ${mediaHtml}
+    <div class="scroll-top">
+      <span class="scroll-cat-tag">${CAT_EMOJI[s.cat]||''} ${s.cat}</span>
+      <span class="scroll-counter">${i+1} / ${total}</span>
+    </div>
+    <h2>${s.titre}</h2>
+    <div class="scroll-meta">${dateBlockHtml}<br>📍 ${s.ville}</div>
+    <div class="scroll-desc">${expanded ? (s.desc + ' ' + (s.extra||'')) : s.desc}</div>
+    ${s.extra ? `<button class="desc-toggle" data-toggle="${s.id}">${expanded ? '− moins' : '+ plus'}</button>` : ''}
+    <div class="scroll-actions">
+      <button class="scroll-action-btn ${voted?'voted':''}" data-svote="${s.id}">🔥<span>${votes}</span></button>
+      <button class="scroll-action-btn" data-scomment="${s.id}">💬<span>${comCount}</span></button>
+      ${isAdmin ? `<button class="scroll-action-btn" data-spublish="1">✎<span>ajouter</span></button>` : ''}
+    </div>
+    ${i===0 ? '<div class="scroll-hint">▲ glisse pour voir la suite ▲</div>' : ''}
+  </div>`;
+}
+
 function renderScrollFeed(){
   const el = document.getElementById('scrollFeed');
   const list = getFilteredList();
@@ -737,42 +828,12 @@ function renderScrollFeed(){
     return;
   }
 
-  el.innerHTML = list.map((s,i)=>{
-    const d = new Date(s.date + 'T00:00:00');
-    const dateFmt = d.toLocaleDateString('fr-FR', {weekday:'short', day:'2-digit', month:'short'});
-    const imgs = s.images || [];
-    const votes = (s.votedBy||[]).length;
-    const voted = currentUid ? (s.votedBy||[]).includes(currentUid) : false;
-    const comCount = (s.commentaires||[]).length;
-    const expanded = expandedIds.has(s.id);
-    const mediaHtml = imgs.length ? `
-      <div class="scroll-media">
-        <div class="media-strip">
-          ${imgs.map(url=>`<div class="media-slide" style="background-image:url('${url}')"></div>`).join('')}
-        </div>
-      </div>
-      <div class="scroll-overlay-gradient"></div>
-      ${imgs.length>1 ? `<div class="media-dots">${imgs.map((_,di)=>`<span class="dot ${di===0?'active':''}"></span>`).join('')}</div>` : ''}
-    ` : '';
-    return `
-    <div class="scroll-card sc-${s.cat} ${imgs.length?'has-media':''}" data-emoji="${CAT_EMOJI[s.cat]||'✨'}" data-id="${s.id}">
-      ${mediaHtml}
-      <div class="scroll-top">
-        <span class="scroll-cat-tag">${CAT_EMOJI[s.cat]||''} ${s.cat}</span>
-        <span class="scroll-counter">${i+1} / ${list.length}</span>
-      </div>
-      <h2>${s.titre}</h2>
-      <div class="scroll-meta">${dateFmt} · ${s.heure}<br>📍 ${s.ville}</div>
-      <div class="scroll-desc">${expanded ? (s.desc + ' ' + (s.extra||'')) : s.desc}</div>
-      ${s.extra ? `<button class="desc-toggle" data-toggle="${s.id}">${expanded ? '− moins' : '+ plus'}</button>` : ''}
-      <div class="scroll-actions">
-        <button class="scroll-action-btn ${voted?'voted':''}" data-svote="${s.id}">🔥<span>${votes}</span></button>
-        <button class="scroll-action-btn" data-scomment="${s.id}">💬<span>${comCount}</span></button>
-        <button class="scroll-action-btn" data-spublish="1">✎<span>ajouter</span></button>
-      </div>
-      ${i===0 ? '<div class="scroll-hint">▲ glisse pour voir la suite ▲</div>' : ''}
-    </div>`;
-  }).join('');
+  let html = list.map((s,i)=> buildScrollCardHtml(s, i, list.length)).join('');
+  if(list.length > 1){
+    // carte-clone du premier post pour boucler en fin de liste
+    html += buildScrollCardHtml(list[0], 0, list.length);
+  }
+  el.innerHTML = html;
 
   el.querySelectorAll('.media-strip').forEach(strip=>{
     strip.addEventListener('scroll', ()=>{
@@ -783,6 +844,19 @@ function renderScrollFeed(){
       }
     }, {passive:true});
   });
+
+  if(list.length > 1){
+    let loopTimer;
+    el.onscroll = ()=>{
+      clearTimeout(loopTimer);
+      loopTimer = setTimeout(()=>{
+        const idx = Math.round(el.scrollTop / el.clientHeight);
+        if(idx >= list.length){
+          el.scrollTo({top:0, behavior:'auto'});
+        }
+      }, 150);
+    };
+  }
 
   el.querySelectorAll('[data-svote]').forEach(btn=>{
     btn.onclick = (e)=>{ e.stopPropagation(); toggleVote(btn.dataset.svote); };
@@ -798,7 +872,13 @@ function renderScrollFeed(){
       e.stopPropagation();
       const id = btn.dataset.toggle;
       if(expandedIds.has(id)) expandedIds.delete(id); else expandedIds.add(id);
-      renderScrollFeed();
+      const expanded = expandedIds.has(id);
+      const s = sorties.find(x=>x.id===id);
+      if(!s) return;
+      const card = btn.closest('.scroll-card');
+      const descEl = card.querySelector('.scroll-desc');
+      descEl.textContent = expanded ? (s.desc + ' ' + (s.extra||'')) : s.desc;
+      btn.textContent = expanded ? '− moins' : '+ plus';
     };
   });
 }
@@ -832,8 +912,12 @@ async function addComment(id, who, texte){
 function openDetail(id){
   const s = sorties.find(x=>x.id===id);
   if(!s) return;
-  const d = new Date(s.date + 'T00:00:00');
-  const dateFmt = d.toLocaleDateString('fr-FR', {weekday:'long', day:'2-digit', month:'long'});
+  const upc = upcomingDates(s);
+  const datesHtml = upc.map(dt=>{
+    const dd = new Date(dt.date + 'T00:00:00');
+    const lbl = dd.toLocaleDateString('fr-FR', {weekday:'long', day:'2-digit', month:'long'});
+    return `${lbl} · ${dt.heure}`;
+  }).join('<br>');
   const votes = (s.votedBy||[]).length;
   const voted = currentUid ? (s.votedBy||[]).includes(currentUid) : false;
   const comments = s.commentaires || [];
@@ -843,10 +927,11 @@ function openDetail(id){
       <button class="close" id="closeModal">✕ fermer</button>
       <span class="flyer-cat ${catClass(s.cat)}">${s.cat}</span>
       <h2>${s.titre}</h2>
-      <div class="detail-meta">${dateFmt} · ${s.heure}<br>📍 ${s.ville}</div>
+      <div class="detail-meta">${datesHtml}<br>📍 ${s.ville}</div>
       <div class="detail-desc">${s.desc}${s.extra ? ' ' + s.extra : ''}</div>
       <div class="flyer-foot" style="margin-bottom:14px;">
         <button class="vote-btn ${voted?'voted':''}" data-vote="${s.id}" ${CONFIG_READY?'':'disabled'}>🔥 ${votes} — j'y vais</button>
+        ${isAdmin ? `<button class="vote-btn" id="deleteBtn" style="border-color:var(--pin); color:var(--pin);">🗑 Supprimer</button>` : ''}
       </div>
       <div class="comments">
         <div id="commentsList">
@@ -870,6 +955,14 @@ function openDetail(id){
     addComment(id, who, val);
     closeModal();
   };
+  if(isAdmin){
+    document.getElementById('deleteBtn').onclick = ()=>{
+      if(confirm("Supprimer définitivement cette sortie ?")){
+        deleteDoc(doc(db,'sorties',id));
+        closeModal();
+      }
+    };
+  }
 }
 
 function closeModal(){
@@ -877,6 +970,10 @@ function closeModal(){
 }
 
 function openPublishForm(){
+  if(!isAdmin){
+    alert("Seul l'administrateur peut publier une sortie.");
+    return;
+  }
   if(!CONFIG_READY){
     alert("Configure ta clé Firebase dans le code (objet firebaseConfig) avant de pouvoir publier.");
     return;
@@ -891,24 +988,55 @@ function openPublishForm(){
       <select id="f-cat">${CATS.map(c=>`<option value="${c}">${c}</option>`).join('')}</select>
       <label>Ville</label>
       <select id="f-ville">${VILLES.map(v=>`<option value="${v}">${v}</option>`).join('')}</select>
-      <label>Date</label><input type="date" id="f-date" value="${todayStr()}">
-      <label>Horaire</label><input type="text" id="f-heure" placeholder="Ex : 18h–22h">
+      <label>Date(s)</label>
+      <div id="f-dates-list"></div>
+      <button type="button" class="seed-btn" id="f-add-date" style="margin-top:6px;">＋ Ajouter une date</button>
       <label>Description</label><textarea id="f-desc" placeholder="Quelques mots pour donner envie d'y aller..."></textarea>
       <label>Détails supplémentaires (optionnel, affichés via "+ plus")</label>
       <textarea id="f-extra" placeholder="Infos pratiques : parking, horaires, inscription..."></textarea>
       <div style="margin-top:14px; font-family:'Space Mono',monospace; font-size:11.5px; color:var(--ink-soft); background:#fffdf6; border:1px dashed #b6935c88; border-radius:4px; padding:10px;">
         📷 Ajout de photos temporairement désactivé (en attente de l'activation de Firebase Storage).
       </div>
-      ${isAdmin ? '' : `<div style="margin-top:10px; font-family:'Space Mono',monospace; font-size:11.5px; color:var(--ink-soft);">ℹ️ Ta sortie sera visible après validation par un modérateur.</div>`}
-      <button class="submit" id="f-submit">${isAdmin ? 'Publier sur le panneau' : 'Soumettre pour validation'}</button>
+      <button class="submit" id="f-submit">Publier sur le panneau</button>
     </div>
   </div>`;
   document.getElementById('overlay').onclick = (e)=>{ if(e.target.id==='overlay') closeModal(); };
   document.getElementById('closeModal').onclick = closeModal;
 
+  let dateRows = [{date: todayStr(), heure: ''}];
+  function renderDateRows(){
+    const wrap = document.getElementById('f-dates-list');
+    wrap.innerHTML = dateRows.map((row,idx)=>`
+      <div style="display:flex; gap:6px; margin-top:6px;">
+        <input type="date" data-drow="${idx}" data-field="date" value="${row.date}" style="flex:1;">
+        <input type="text" data-drow="${idx}" data-field="heure" value="${row.heure}" placeholder="Ex : 18h–22h" style="flex:1;">
+        ${dateRows.length>1 ? `<button type="button" data-rmdate="${idx}" style="flex:0 0 auto; background:none; border:1px solid #b6935c88; border-radius:3px; cursor:pointer; padding:0 10px;">✕</button>` : ''}
+      </div>
+    `).join('');
+    wrap.querySelectorAll('[data-drow]').forEach(input=>{
+      input.oninput = ()=>{
+        dateRows[parseInt(input.dataset.drow)][input.dataset.field] = input.value;
+      };
+    });
+    wrap.querySelectorAll('[data-rmdate]').forEach(btn=>{
+      btn.onclick = ()=>{
+        dateRows.splice(parseInt(btn.dataset.rmdate),1);
+        renderDateRows();
+      };
+    });
+  }
+  renderDateRows();
+  document.getElementById('f-add-date').onclick = ()=>{
+    dateRows.push({date: todayStr(), heure: ''});
+    renderDateRows();
+  };
+
   document.getElementById('f-submit').onclick = async ()=>{
     const titre = document.getElementById('f-titre').value.trim();
     if(!titre){ document.getElementById('f-titre').focus(); return; }
+    const dates = dateRows.filter(r=>r.date).map(r=>({date:r.date, heure:r.heure || "à préciser"}))
+      .sort((a,b)=>a.date.localeCompare(b.date));
+    if(dates.length===0){ alert("Ajoute au moins une date."); return; }
     const submitBtn = document.getElementById('f-submit');
     submitBtn.disabled = true;
     submitBtn.textContent = 'Publication...';
@@ -917,12 +1045,12 @@ function openPublishForm(){
         titre,
         cat: document.getElementById('f-cat').value,
         ville: document.getElementById('f-ville').value,
-        date: document.getElementById('f-date').value || todayStr(),
-        heure: document.getElementById('f-heure').value || "à préciser",
+        dates,
+        dateFin: dates[dates.length-1].date,
         desc: document.getElementById('f-desc').value || "Pas de description.",
         extra: document.getElementById('f-extra').value.trim() || null,
         images: [],
-        status: isAdmin ? 'published' : 'pending',
+        status: 'published',
         votedBy: [],
         commentaires: [],
         createdAt: serverTimestamp()
@@ -944,7 +1072,6 @@ document.getElementById('modeScroll').onclick = ()=>{ viewMode='scroll'; render(
 function render(){
   renderModeToggle();
   renderAdminBadge();
-  renderFilters();
   renderBoard();
   renderScrollFeed();
 }
