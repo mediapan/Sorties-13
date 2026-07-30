@@ -771,9 +771,11 @@ function renderAdminBadge(){
   if(isAdmin){
     el.innerHTML = `
       <button class="pill admin-badge" id="modBtn">🛡️ Modération${pendingSorties.length ? `<span class="count">${pendingSorties.length}</span>` : ''}</button>
+      <button class="pill" id="bulkBtn">📥 Import</button>
       <button class="pill" id="logoutBtn">Déconnexion</button>
     `;
     document.getElementById('modBtn').onclick = openModPanel;
+    document.getElementById('bulkBtn').onclick = openBulkImport;
     document.getElementById('logoutBtn').onclick = ()=>{
       signOut(auth).then(()=> signInAnonymously(auth));
     };
@@ -805,6 +807,76 @@ function openLoginForm(){
     signInWithEmailAndPassword(auth, email, pass)
       .then(()=> closeModal())
       .catch(err=>{ document.getElementById('adm-error').textContent = "Échec : " + err.message; });
+  };
+}
+
+function openBulkImport(){
+  document.getElementById('modalRoot').innerHTML = `
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <button class="close" id="closeModal">✕ fermer</button>
+      <h2>Import en masse</h2>
+      <div style="font-family:'Space Mono',monospace; font-size:11.5px; color:var(--ink-soft); margin-bottom:10px; line-height:1.6;">
+        Colle un tableau JSON de sorties (format : titre, cats[], ville, adresse, dates:[{date,heure}], desc, extra). Chaque sortie sera publiée directement.
+      </div>
+      <textarea id="bulk-json" style="width:100%; min-height:220px; font-family:'Space Mono',monospace; font-size:12px; padding:10px; border:1px solid #b6935c88; background:#fffdf6; border-radius:2px;" placeholder='[
+  {
+    "titre": "Marché des producteurs locaux",
+    "cats": ["Marché"],
+    "ville": "Velaux",
+    "adresse": "Parvis Olivier Ferrand, 13880 Velaux",
+    "dates": [{"date":"2026-08-04","heure":"16h30–19h"}],
+    "desc": "Marché de producteurs locaux en plein air.",
+    "extra": null
+  }
+]'></textarea>
+      <div id="bulk-status" style="font-family:'Space Mono',monospace; font-size:12px; margin-top:8px;"></div>
+      <button class="submit" id="bulk-submit">Importer ces sorties</button>
+    </div>
+  </div>`;
+  document.getElementById('overlay').onclick = (e)=>{ if(e.target.id==='overlay') closeModal(); };
+  document.getElementById('closeModal').onclick = closeModal;
+  document.getElementById('bulk-submit').onclick = async ()=>{
+    const statusEl = document.getElementById('bulk-status');
+    const btn = document.getElementById('bulk-submit');
+    let items;
+    try{
+      items = JSON.parse(document.getElementById('bulk-json').value);
+      if(!Array.isArray(items)) throw new Error("Le JSON doit être un tableau [ ... ].");
+    }catch(err){
+      statusEl.textContent = "❌ JSON invalide : " + err.message;
+      return;
+    }
+    btn.disabled = true;
+    let ok = 0, fail = 0;
+    for(const item of items){
+      try{
+        if(!item.titre || !item.dates || !item.dates.length) throw new Error("titre/dates manquant");
+        await addDoc(collection(db,'sorties'), {
+          titre: item.titre,
+          cats: item.cats && item.cats.length ? item.cats : ["Découverte"],
+          ville: item.ville || "Velaux",
+          adresse: item.adresse || null,
+          dates: item.dates,
+          dateFin: item.dates.slice().sort((a,b)=>a.date.localeCompare(b.date)).slice(-1)[0].date,
+          desc: item.desc || "Pas de description.",
+          extra: item.extra || null,
+          images: [],
+          status: 'published',
+          votedBy: [],
+          commentaires: [],
+          createdAt: serverTimestamp()
+        });
+        ok++;
+      }catch(err){
+        console.error(err);
+        fail++;
+      }
+      statusEl.textContent = `Import en cours... ${ok+fail}/${items.length} (✅ ${ok} · ❌ ${fail})`;
+    }
+    statusEl.textContent = `Terminé : ✅ ${ok} sortie(s) importée(s)${fail ? `, ❌ ${fail} échec(s)` : ''}.`;
+    btn.disabled = false;
+    if(fail===0){ setTimeout(closeModal, 1200); }
   };
 }
 
