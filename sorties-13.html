@@ -141,6 +141,8 @@
   .comment-count{font-family:'Space Mono',monospace; font-size:12px; color:var(--ink-soft);}
 
   .empty{grid-column:1/-1; text-align:center; padding:60px 20px; font-family:'Space Mono',monospace; color:#5a4c3899;}
+  .loading-pulse{animation:pulse 1.4s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:0.4;}50%{opacity:0.9;}}
   .seed-btn{
     margin-top:14px; background:var(--cyprus); color:#fff8ec; border:none; padding:9px 16px; border-radius:20px;
     font-family:'Space Mono',monospace; font-size:12px; cursor:pointer;
@@ -214,13 +216,12 @@
     pointer-events:none;
     z-index:0;
   }
-  .sc-Marché{background:radial-gradient(circle at 30% 20%, #5c8a63, var(--cyprus) 70%);}
-  .sc-Concert{background:radial-gradient(circle at 30% 20%, #8f7cb8, var(--lavender) 70%);}
-  .sc-Fête{background:radial-gradient(circle at 30% 20%, #e07f43, var(--ochre) 70%);}
-  .sc-Nature{background:radial-gradient(circle at 30% 20%, #4b93b3, var(--azure) 70%);}
-  .sc-Expo{background:radial-gradient(circle at 30% 20%, #b08c53, #8a6b3f 70%);}
-  .sc-Feu{background:radial-gradient(circle at 30% 20%, #c14f3c, var(--pin) 70%);}
-  .sc-Découverte{background:radial-gradient(circle at 30% 20%, #4fb39e, var(--teal) 70%);}
+  .secc-marseille{background:radial-gradient(circle at 30% 20%, #5c8a63, var(--cyprus) 70%);}
+  .secc-aubagne{background:radial-gradient(circle at 30% 20%, #c14f3c, var(--pin) 70%);}
+  .secc-aix{background:radial-gradient(circle at 30% 20%, #8f7cb8, var(--lavender) 70%);}
+  .secc-berre{background:radial-gradient(circle at 30% 20%, #4b93b3, var(--azure) 70%);}
+  .secc-salon{background:radial-gradient(circle at 30% 20%, #e07f43, var(--ochre) 70%);}
+  .secc-arles{background:radial-gradient(circle at 30% 20%, #4fb39e, var(--teal) 70%);}
 
   .scroll-media{position:absolute; inset:0; z-index:0;}
   .media-strip{
@@ -448,6 +449,86 @@ const VILLES = [
 ];
 const CAT_EMOJI = {"Marché":"🧺","Concert":"🎵","Fête":"🎉","Nature":"🥾","Expo":"🖼️","Feu":"🎆","Découverte":"🧭"};
 
+const VILLE_SECTEUR = {
+  "Marseille":"marseille",
+  "Cassis":"marseille",
+  "La Ciotat":"marseille",
+  "Ceyreste":"marseille",
+  "Carnoux-en-Provence":"marseille",
+  "Allauch":"marseille",
+  "Plan-de-Cuques":"marseille",
+  "Septèmes-les-Vallons":"marseille",
+  "Aubagne":"aubagne",
+  "Gardanne":"aubagne",
+  "Roquevaire":"aubagne",
+  "Auriol":"aubagne",
+  "La Bouilladisse":"aubagne",
+  "Cuges-les-Pins":"aubagne",
+  "Gémenos":"aubagne",
+  "Peypin":"aubagne",
+  "Aix-en-Provence":"aix",
+  "Ventabren":"aix",
+  "Éguilles":"aix",
+  "Cabriès":"aix",
+  "Bouc-Bel-Air":"aix",
+  "Simiane-Collongue":"aix",
+  "Meyreuil":"aix",
+  "Fuveau":"aix",
+  "Rousset":"aix",
+  "Trets":"aix",
+  "Gréasque":"aix",
+  "Peynier":"aix",
+  "Saint-Cannat":"aix",
+  "Martigues":"berre",
+  "Istres":"berre",
+  "Vitrolles":"berre",
+  "Marignane":"berre",
+  "Miramas":"berre",
+  "Berre-l'Étang":"berre",
+  "Fos-sur-Mer":"berre",
+  "Port-de-Bouc":"berre",
+  "Châteauneuf-les-Martigues":"berre",
+  "Les Pennes-Mirabeau":"berre",
+  "Rognac":"berre",
+  "Velaux":"berre",
+  "Lançon-Provence":"berre",
+  "Grans":"berre",
+  "Saint-Chamas":"berre",
+  "Sausset-les-Pins":"berre",
+  "Carry-le-Rouet":"berre",
+  "Le Rove":"berre",
+  "Ensuès-la-Redonne":"berre",
+  "Gignac-la-Nerthe":"berre",
+  "Salon-de-Provence":"salon",
+  "La Fare-les-Oliviers":"salon",
+  "Lambesc":"salon",
+  "Pélissanne":"salon",
+  "Saint-Rémy-de-Provence":"salon",
+  "Maussane-les-Alpilles":"salon",
+  "Eyguières":"salon",
+  "Mallemort":"salon",
+  "Charleval":"salon",
+  "Sénas":"salon",
+  "Noves":"salon",
+  "Arles":"arles",
+  "Tarascon":"arles",
+  "Châteaurenard":"arles"
+};
+
+const SECTEUR_LABEL = {
+  marseille:"Marseille & Littoral",
+  aubagne:"Aubagne & Garlaban",
+  aix:"Pays d'Aix",
+  berre:"Étang de Berre",
+  salon:"Salon & Alpilles",
+  arles:"Arles & Camargue"
+};
+
+function getSecteur(ville){
+  return VILLE_SECTEUR[ville] || "marseille";
+}
+
+
 function demoImg(bg, label){
   const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='700'><rect width='100%' height='100%' fill='${bg}'/><text x='50%' y='50%' font-family='sans-serif' font-size='30' fill='white' text-anchor='middle' dominant-baseline='middle'>${label}</text></svg>`;
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
@@ -508,6 +589,7 @@ const DEMO_SORTIES = [
 let app, db, auth, currentUid = null, isAdmin = false;
 let pendingSorties = [];
 let sorties = [];
+let dataLoaded = false;
 let activeCat = "Toutes";
 let activeVille = "Toutes";
 let sortMode = "date";
@@ -533,9 +615,11 @@ function startListening(){
   const q = query(collection(db,'sorties'), where('status','==','published'), where('dateFin','>=', todayStr()), orderBy('dateFin','asc'));
   onSnapshot(q, snap=>{
     sorties = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    dataLoaded = true;
     render();
   }, err=>{
     console.error(err);
+    dataLoaded = true;
     showConfigWarning("Erreur Firestore : " + err.message + ". Vérifie les règles de sécurité et que l'index existe (le lien pour le créer apparaît dans la console du navigateur).");
   });
 }
@@ -646,17 +730,32 @@ async function seedDemoData(){
 }
 
 function emptyStateHtml(forScroll){
+  if(!CONFIG_READY){
+    const msg = `<div style="margin-top:10px; opacity:0.8;">Configure Firebase pour publier des sorties.</div>`;
+    if(forScroll){
+      return `<div class="scroll-card secc-marseille" data-emoji="🧭" style="justify-content:center; align-items:center; text-align:center;">
+        <div><h2 style="max-width:100%;">Rien ici</h2><div class="scroll-desc" style="max-width:100%;">${msg}</div></div>
+      </div>`;
+    }
+    return `<div class="empty">Aucune sortie ici pour l'instant.<br>${msg}</div>`;
+  }
+  if(!dataLoaded){
+    if(forScroll){
+      return `<div class="scroll-card secc-marseille" data-emoji="🧭" style="justify-content:center; align-items:center; text-align:center;">
+        <div class="loading-pulse">Chargement des sorties...</div>
+      </div>`;
+    }
+    return `<div class="empty loading-pulse">Chargement des sorties...</div>`;
+  }
   const btn = isAdmin
     ? `<button class="seed-btn" id="seedBtn">＋ Importer 9 sorties d'exemple</button>`
-    : CONFIG_READY
-      ? `<div style="margin-top:10px; opacity:0.8;">Publie une sortie, elle apparaîtra ici une fois validée.</div>`
-      : `<div style="margin-top:10px; opacity:0.8;">Configure Firebase pour publier des sorties.</div>`;
+    : `<div style="margin-top:10px; opacity:0.8;">Reviens bientôt, de nouvelles sorties arrivent.</div>`;
   if(forScroll){
-    return `<div class="scroll-card sc-Marché" data-emoji="🧺" style="justify-content:center; align-items:center; text-align:center;">
-      <div><h2 style="max-width:100%;">Rien ici</h2><div class="scroll-desc" style="max-width:100%;">Change de filtre ou publie la première sortie.</div>${btn}</div>
+    return `<div class="scroll-card secc-marseille" data-emoji="🧭" style="justify-content:center; align-items:center; text-align:center;">
+      <div><h2 style="max-width:100%;">Rien ici pour l'instant</h2><div class="scroll-desc" style="max-width:100%;">${btn}</div></div>
     </div>`;
   }
-  return `<div class="empty">Aucune sortie ici pour l'instant.<br>Sois le premier à en publier une.<br>${btn}</div>`;
+  return `<div class="empty">Aucune sortie ici pour l'instant.<br>${btn}</div>`;
 }
 
 function bindSeedBtn(el){
@@ -824,8 +923,9 @@ function buildScrollCardHtml(s, i, total){
       </div>`
     : `${dateFmt} · ${primary.heure}`;
   const primaryCat = (s.cats && s.cats[0]) || 'Découverte';
+  const secteur = getSecteur(s.ville);
   return `
-  <div class="scroll-card sc-${primaryCat} ${imgs.length?'has-media':''}" data-emoji="${CAT_EMOJI[primaryCat]||'✨'}" data-id="${s.id}">
+  <div class="scroll-card secc-${secteur} ${imgs.length?'has-media':''}" data-emoji="${CAT_EMOJI[primaryCat]||'✨'}" data-id="${s.id}">
     ${mediaHtml}
     <div class="scroll-top">
       <div class="scroll-top-left">
