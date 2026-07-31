@@ -177,6 +177,29 @@
   .modal .submit:disabled{opacity:0.6; cursor:default;}
   .detail-meta{font-family:'Space Mono',monospace; font-size:12px; color:var(--ink-soft); margin-bottom:6px; line-height:1.7;}
   .detail-address{font-family:'Space Mono',monospace; font-size:12px; color:var(--azure); margin-bottom:12px;}
+  .reservation-box{
+    background:#f0e6cd; border:1px solid #b6935c88; border-radius:4px; padding:10px 12px;
+    margin-bottom:16px; font-family:'Space Mono',monospace; font-size:12.5px; line-height:1.9;
+  }
+  .reservation-box.urgent{background:#f5e0da; border-color:var(--pin);}
+  .reservation-label{font-weight:700; color:var(--ochre);}
+  .reservation-box.urgent .reservation-label{color:var(--pin);}
+  .reservation-box a{color:var(--azure); text-decoration:none;}
+  .reservation-box a:hover{text-decoration:underline;}
+  .reservation-tag{
+    font-family:'Space Mono',monospace; font-weight:700; font-size:11px;
+    background:var(--pin); color:#fff8ec; padding:4px 10px; border-radius:20px; white-space:nowrap;
+  }
+  .reservation-tag-flyer{
+    font-family:'Space Mono',monospace; font-weight:700; font-size:11px; color:var(--pin); margin-bottom:10px;
+  }
+  .gratuit-tag{
+    font-family:'Space Mono',monospace; font-weight:700; font-size:11px;
+    background:var(--cyprus); color:#fff8ec; padding:4px 10px; border-radius:20px; white-space:nowrap;
+  }
+  .gratuit-tag-flyer{
+    font-family:'Space Mono',monospace; font-weight:700; font-size:11px; color:var(--cyprus); margin-bottom:10px;
+  }
   .detail-desc{font-size:15px; line-height:1.5; margin-bottom:18px;}
   .comments{border-top:1px dashed #00000030; padding-top:14px;}
   .comment{font-size:13.5px; margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #00000012;}
@@ -412,7 +435,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
   getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot,
-  query, where, orderBy, arrayUnion, arrayRemove, serverTimestamp
+  query, where, orderBy, arrayUnion, arrayRemove, serverTimestamp, getDocs
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import {
   getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuthStateChanged
@@ -542,31 +565,37 @@ const DEMO_SORTIES = [
   {titre:"Marché nocturne des Docks", cats:["Marché","Fête"], ville:"Marseille", adresse:"10 Place aux Huiles, 13002 Marseille",
    dates:[{date:"2026-08-01",heure:"18h–23h"},{date:"2026-08-08",heure:"18h–23h"},{date:"2026-08-15",heure:"18h–23h"}],
    desc:"Producteurs locaux, foodtrucks et DJ set au coucher du soleil sur le port.",
+   gratuit:true,
    extra:"Accès libre, une trentaine de stands attendus. Parking conseillé au parking des Docks (payant après 19h). Buvette et zone enfants sur place.",
    images:[demoImg('#3f5c44','Stand producteurs'), demoImg('#2c6b86','Vue sur le port'), demoImg('#c25a25','DJ set au coucher du soleil')]},
   {titre:"Feu d'artifice de la Frégate", cats:["Feu"], ville:"Cassis",
    dates:[{date:"2026-08-15",heure:"22h30"}],
    desc:"Tir depuis le port, meilleure vue depuis la calanque de Port-Miou en arrivant tôt.",
+   gratuit:true,
    extra:"Centre-ville fermé à la circulation dès 20h. Comptez 20 min de tir, suivi d'un bal populaire place Baragnon.",
    images:[]},
   {titre:"Festival Lyrique en plein air", cats:["Concert"], ville:"Aix-en-Provence",
    dates:[{date:"2026-08-04",heure:"20h"}],
    desc:"Extraits d'opéra dans la cour de l'Archevêché, places debout gratuites.",
+   gratuit:true,
    extra:"Ouverture des portes à 19h, jauge limitée à 400 personnes debout. Apportez un coussin ou un tabouret pliant.",
    images:[]},
   {titre:"Rando Calanque de Port-Miou → En-Vau", cats:["Nature"], ville:"Cassis",
    dates:[{date:"2026-08-09",heure:"7h30"}],
    desc:"Départ groupé au frais, 3h de marche, prévoir eau et chaussures fermées.",
    extra:"Rendez-vous au parking du Pas de la Colle, groupe limité à 15 personnes sur inscription.",
+   reservation:"Obligatoire", contactTel:"04 42 01 71 17", contactEmail:"contact@cassis-tourisme.fr",
    images:[]},
   {titre:"Fête votive de Velaux", cats:["Fête"], ville:"Velaux", adresse:"Place de la Mairie, 13880 Velaux",
    dates:[{date:"2026-08-22",heure:"toute la journée"}],
    desc:"Manèges, encierro provençal, bal populaire le soir sur la place du village.",
+   gratuit:true,
    extra:"Lâcher de vachettes à 17h, repas de quartier à 19h30 sur réservation en mairie, bal à partir de 22h.",
    images:[demoImg('#c25a25','Encierro provençal'), demoImg('#6c5b8f','Bal populaire')]},
   {titre:"Expo photo — Étangs de Camargue", cats:["Expo","Découverte"], ville:"Arles",
    dates:[{date:"2026-08-05",heure:"10h–19h"},{date:"2026-08-19",heure:"10h–19h"}],
    desc:"Cinquante tirages sur les flamants roses et manades, entrée libre.",
+   gratuit:true,
    extra:"Exposition installée dans la chapelle Sainte-Anne, climatisée. Visite guidée à 15h tous les jours.",
    images:[]},
   {titre:"Vide-grenier du Vieux Salon", cats:["Marché"], ville:"Salon-de-Provence",
@@ -577,6 +606,7 @@ const DEMO_SORTIES = [
   {titre:"Concert Étang de Berre — soirée jazz", cats:["Concert"], ville:"Martigues",
    dates:[{date:"2026-08-12",heure:"21h"}],
    desc:"Scène flottante face au canal, gratuit, transats fournis.",
+   gratuit:true,
    extra:"Places limitées à 300 transats, arrivée conseillée dès 20h.",
    images:[]},
   {titre:"Balade nocturne dans la Réserve de Sainte-Croix", cats:["Nature","Découverte"], ville:"Istres",
@@ -772,10 +802,14 @@ function renderAdminBadge(){
     el.innerHTML = `
       <button class="pill admin-badge" id="modBtn">🛡️ Modération${pendingSorties.length ? `<span class="count">${pendingSorties.length}</span>` : ''}</button>
       <button class="pill" id="bulkBtn">📥 Import</button>
+      <button class="pill" id="exportBtn">📤 Export</button>
+      <button class="pill" id="deleteAllBtn" style="background:var(--pin); border-color:var(--pin); color:#fff8ec;">🗑️ Tout supprimer</button>
       <button class="pill" id="logoutBtn">Déconnexion</button>
     `;
     document.getElementById('modBtn').onclick = openModPanel;
     document.getElementById('bulkBtn').onclick = openBulkImport;
+    document.getElementById('exportBtn').onclick = exportJson;
+    document.getElementById('deleteAllBtn').onclick = openDeleteAllConfirm;
     document.getElementById('logoutBtn').onclick = ()=>{
       signOut(auth).then(()=> signInAnonymously(auth));
     };
@@ -810,6 +844,75 @@ function openLoginForm(){
   };
 }
 
+function openDeleteAllConfirm(){
+  document.getElementById('modalRoot').innerHTML = `
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <button class="close" id="closeModal">✕ fermer</button>
+      <h2 style="color:var(--pin);">⚠️ Tout supprimer</h2>
+      <div style="font-family:'Space Mono',monospace; font-size:13px; line-height:1.7; margin-bottom:16px;">
+        Tu es sur le point de supprimer <strong>définitivement</strong> toutes les sorties de la base (publiées et en attente). Cette action est irréversible.
+        <br><br>Pense à faire un <strong>📤 Export</strong> avant si tu veux garder une sauvegarde.
+        <br><br>Es-tu certain de vouloir continuer ?
+      </div>
+      <div id="deleteall-status" style="font-family:'Space Mono',monospace; font-size:12px; margin-bottom:12px;"></div>
+      <div style="display:flex; gap:10px;">
+        <button class="submit" id="deleteall-cancel" style="background:#00000015; color:var(--ink); flex:1;">Annuler</button>
+        <button class="submit" id="deleteall-confirm" style="background:var(--pin); flex:1;">Oui, tout supprimer</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('overlay').onclick = (e)=>{ if(e.target.id==='overlay') closeModal(); };
+  document.getElementById('closeModal').onclick = closeModal;
+  document.getElementById('deleteall-cancel').onclick = closeModal;
+  document.getElementById('deleteall-confirm').onclick = async ()=>{
+    const statusEl = document.getElementById('deleteall-status');
+    const confirmBtn = document.getElementById('deleteall-confirm');
+    confirmBtn.disabled = true;
+    document.getElementById('deleteall-cancel').disabled = true;
+    try{
+      const snap = await getDocs(collection(db,'sorties'));
+      let done = 0;
+      for(const d of snap.docs){
+        await deleteDoc(doc(db,'sorties', d.id));
+        done++;
+        statusEl.textContent = `Suppression en cours... ${done}/${snap.docs.length}`;
+      }
+      statusEl.textContent = `✅ ${done} sortie(s) supprimée(s).`;
+      setTimeout(closeModal, 1200);
+    }catch(err){
+      console.error(err);
+      statusEl.textContent = "❌ Erreur : " + err.message;
+      confirmBtn.disabled = false;
+      document.getElementById('deleteall-cancel').disabled = false;
+    }
+  };
+}
+
+function exportJson(){
+  const clean = sorties.map(s=>({
+    titre: s.titre,
+    cats: s.cats || [],
+    ville: s.ville,
+    adresse: s.adresse || null,
+    dates: s.dates || [],
+    desc: s.desc,
+    extra: s.extra || null,
+    reservation: s.reservation || "Aucune",
+    contactTel: s.contactTel || null,
+    contactEmail: s.contactEmail || null,
+    gratuit: !!s.gratuit  }));
+  const blob = new Blob([JSON.stringify(clean, null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `sorties-13-export-${todayStr()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 function openBulkImport(){
   document.getElementById('modalRoot').innerHTML = `
   <div class="overlay" id="overlay">
@@ -817,9 +920,11 @@ function openBulkImport(){
       <button class="close" id="closeModal">✕ fermer</button>
       <h2>Import en masse</h2>
       <div style="font-family:'Space Mono',monospace; font-size:11.5px; color:var(--ink-soft); margin-bottom:10px; line-height:1.6;">
-        Colle un tableau JSON de sorties (format : titre, cats[], ville, adresse, dates:[{date,heure}], desc, extra). Chaque sortie sera publiée directement.
+        Colle un tableau JSON de sorties (format : titre, cats[], ville, adresse, dates:[{date,heure}], desc, extra), ou choisis directement un fichier .json (par exemple celui téléchargé via "📤 Export"). Chaque sortie sera publiée directement.
       </div>
-      <textarea id="bulk-json" style="width:100%; min-height:220px; font-family:'Space Mono',monospace; font-size:12px; padding:10px; border:1px solid #b6935c88; background:#fffdf6; border-radius:2px;" placeholder='[
+      <div class="img-drop" id="bulk-file-drop">📄 Choisir un fichier .json</div>
+      <input type="file" id="bulk-file" accept="application/json,.json" style="display:none;">
+      <textarea id="bulk-json" style="width:100%; min-height:220px; margin-top:10px; font-family:'Space Mono',monospace; font-size:12px; padding:10px; border:1px solid #b6935c88; background:#fffdf6; border-radius:2px;" placeholder='[
   {
     "titre": "Marché des producteurs locaux",
     "cats": ["Marché"],
@@ -836,6 +941,16 @@ function openBulkImport(){
   </div>`;
   document.getElementById('overlay').onclick = (e)=>{ if(e.target.id==='overlay') closeModal(); };
   document.getElementById('closeModal').onclick = closeModal;
+  document.getElementById('bulk-file-drop').onclick = ()=> document.getElementById('bulk-file').click();
+  document.getElementById('bulk-file').onchange = (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      document.getElementById('bulk-json').value = reader.result;
+    };
+    reader.readAsText(file);
+  };
   document.getElementById('bulk-submit').onclick = async ()=>{
     const statusEl = document.getElementById('bulk-status');
     const btn = document.getElementById('bulk-submit');
@@ -848,35 +963,59 @@ function openBulkImport(){
       return;
     }
     btn.disabled = true;
-    let ok = 0, fail = 0;
+    let created = 0, merged = 0, fail = 0;
+    const norm = t => (t||'').trim().toLowerCase();
     for(const item of items){
       try{
         if(!item.titre || !item.dates || !item.dates.length) throw new Error("titre/dates manquant");
-        await addDoc(collection(db,'sorties'), {
-          titre: item.titre,
-          cats: item.cats && item.cats.length ? item.cats : ["Découverte"],
-          ville: item.ville || "Velaux",
-          adresse: item.adresse || null,
-          dates: item.dates,
-          dateFin: item.dates.slice().sort((a,b)=>a.date.localeCompare(b.date)).slice(-1)[0].date,
-          desc: item.desc || "Pas de description.",
-          extra: item.extra || null,
-          images: [],
-          status: 'published',
-          votedBy: [],
-          commentaires: [],
-          createdAt: serverTimestamp()
-        });
-        ok++;
+        const existing = sorties.find(s => norm(s.titre)===norm(item.titre) && s.ville===item.ville);
+        const newDates = item.dates;
+        if(existing){
+          const merged_dates = [...(existing.dates||[])];
+          newDates.forEach(nd=>{
+            if(!merged_dates.some(ed=>ed.date===nd.date)) merged_dates.push(nd);
+          });
+          merged_dates.sort((a,b)=>a.date.localeCompare(b.date));
+          if(merged_dates.length === (existing.dates||[]).length){
+            // rien de nouveau à ajouter
+          } else {
+            await updateDoc(doc(db,'sorties',existing.id), {
+              dates: merged_dates,
+              dateFin: merged_dates[merged_dates.length-1].date
+            });
+            merged++;
+          }
+        } else {
+          await addDoc(collection(db,'sorties'), {
+            titre: item.titre,
+            cats: item.cats && item.cats.length ? item.cats : ["Découverte"],
+            ville: item.ville || "Velaux",
+            adresse: item.adresse || null,
+            dates: newDates,
+            dateFin: newDates.slice().sort((a,b)=>a.date.localeCompare(b.date)).slice(-1)[0].date,
+            desc: item.desc || "Pas de description.",
+            extra: item.extra || null,
+            reservation: item.reservation || "Aucune",
+            contactTel: item.contactTel || null,
+            contactEmail: item.contactEmail || null,
+            gratuit: !!item.gratuit,
+            images: [],
+            status: 'published',
+            votedBy: [],
+            commentaires: [],
+            createdAt: serverTimestamp()
+          });
+          created++;
+        }
       }catch(err){
         console.error(err);
         fail++;
       }
-      statusEl.textContent = `Import en cours... ${ok+fail}/${items.length} (✅ ${ok} · ❌ ${fail})`;
+      statusEl.textContent = `Import en cours... ${created+merged+fail}/${items.length} (＋${created} nouvelles · 🔗${merged} fusionnées · ❌${fail})`;
     }
-    statusEl.textContent = `Terminé : ✅ ${ok} sortie(s) importée(s)${fail ? `, ❌ ${fail} échec(s)` : ''}.`;
+    statusEl.textContent = `Terminé : ＋${created} nouvelle(s) · 🔗${merged} fusionnée(s) (dates ajoutées à des sorties existantes)${fail ? ` · ❌${fail} échec(s)` : ''}.`;
     btn.disabled = false;
-    if(fail===0){ setTimeout(closeModal, 1200); }
+    if(fail===0){ setTimeout(closeModal, 1600); }
   };
 }
 
@@ -949,6 +1088,8 @@ function renderBoard(){
       <h3>${s.titre}</h3>
       <div class="meta">${dateFmt} · ${upc[0].heure}${upc.length>1 ? ` <span style="opacity:0.7;">· +${upc.length-1} autre${upc.length>2?'s':''} date${upc.length>2?'s':''}</span>` : ''}</div>
       ${s.adresse ? `<div class="flyer-address">📫 ${s.adresse}</div>` : ''}
+      ${s.gratuit ? `<div class="gratuit-tag-flyer">🆓 Gratuit</div>` : ''}
+      ${s.reservation === 'Obligatoire' ? `<div class="reservation-tag-flyer">🎟️ Réservation obligatoire</div>` : ''}
       <div class="desc">${s.desc}</div>
       <div class="flyer-foot">
         <button class="vote-btn ${voted?'voted':''}" data-vote="${s.id}" ${CONFIG_READY?'':'disabled'}>🔥 ${votes}</button>
@@ -1003,6 +1144,8 @@ function buildScrollCardHtml(s, i, total){
       <div class="scroll-top-left">
         ${(s.cats||[]).map(c=>`<span class="scroll-cat-tag">${CAT_EMOJI[c]||''} ${c}</span>`).join('')}
         <span class="scroll-ville-tag">📍 ${s.ville}</span>
+        ${s.gratuit ? `<span class="gratuit-tag">🆓 Gratuit</span>` : ''}
+        ${s.reservation === 'Obligatoire' ? `<span class="reservation-tag">🎟️ Résa obligatoire</span>` : ''}
       </div>
       <span class="scroll-counter">${i+1} / ${total}</span>
     </div>
@@ -1169,6 +1312,14 @@ function openDetail(id){
       <div class="detail-meta">${datesHtml}<br>📍 ${s.ville}</div>
       ${s.adresse ? `<div class="detail-address">📫 ${s.adresse}</div>` : ''}
       <div class="detail-desc">${s.desc}${s.extra ? ' ' + s.extra : ''}</div>
+      ${(s.reservation && s.reservation !== 'Aucune') || s.contactTel || s.contactEmail || s.gratuit ? `
+        <div class="reservation-box ${s.reservation==='Obligatoire' ? 'urgent' : ''}">
+          ${s.gratuit ? `<div class="reservation-label" style="color:var(--cyprus);">🆓 Gratuit</div>` : ''}
+          ${s.reservation && s.reservation !== 'Aucune' ? `<div class="reservation-label">🎟️ Réservation ${s.reservation.toLowerCase()}</div>` : ''}
+          ${s.contactTel ? `<div><a href="tel:${s.contactTel.replace(/\s/g,'')}">📞 ${s.contactTel}</a></div>` : ''}
+          ${s.contactEmail ? `<div><a href="mailto:${s.contactEmail}">✉️ ${s.contactEmail}</a></div>` : ''}
+        </div>
+      ` : ''}
       <div class="flyer-foot" style="margin-bottom:14px; flex-wrap:wrap; gap:8px;">
         <button class="vote-btn ${voted?'voted':''}" data-vote="${s.id}" ${CONFIG_READY?'':'disabled'}>🔥 ${votes} — j'y vais</button>
         ${isAdmin ? `<button class="vote-btn" id="editBtn">✏️ Modifier</button>` : ''}
@@ -1245,6 +1396,19 @@ function openPublishForm(editing){
       <label>Description</label><textarea id="f-desc" placeholder="Quelques mots pour donner envie d'y aller...">${isEdit ? editing.desc : ''}</textarea>
       <label>Détails supplémentaires (optionnel, affichés via "+ plus")</label>
       <textarea id="f-extra" placeholder="Infos pratiques : parking, horaires, inscription...">${isEdit && editing.extra ? editing.extra : ''}</textarea>
+      <label style="display:flex; align-items:center; gap:6px; cursor:pointer; margin-top:14px;">
+        <input type="checkbox" id="f-gratuit" ${isEdit && editing.gratuit ? 'checked' : ''}> Événement gratuit
+      </label>
+      <label>Réservation</label>
+      <select id="f-reservation">
+        <option value="Aucune" ${isEdit && editing.reservation==='Aucune' ? 'selected' : ''}>Aucune (accès libre)</option>
+        <option value="Conseillée" ${isEdit && editing.reservation==='Conseillée' ? 'selected' : ''}>Conseillée</option>
+        <option value="Obligatoire" ${isEdit && editing.reservation==='Obligatoire' ? 'selected' : ''}>Obligatoire</option>
+      </select>
+      <label>Téléphone (optionnel)</label>
+      <input type="tel" id="f-tel" placeholder="Ex : 04 42 XX XX XX" value="${isEdit && editing.contactTel ? editing.contactTel : ''}">
+      <label>Email (optionnel)</label>
+      <input type="email" id="f-email" placeholder="Ex : contact@mairie-velaux.fr" value="${isEdit && editing.contactEmail ? editing.contactEmail : ''}">
       <div style="margin-top:14px; font-family:'Space Mono',monospace; font-size:11.5px; color:var(--ink-soft); background:#fffdf6; border:1px dashed #b6935c88; border-radius:4px; padding:10px;">
         📷 Ajout de photos temporairement désactivé (en attente de l'activation de Firebase Storage).
       </div>
@@ -1303,7 +1467,11 @@ function openPublishForm(editing){
       dates,
       dateFin: dates[dates.length-1].date,
       desc: document.getElementById('f-desc').value || "Pas de description.",
-      extra: document.getElementById('f-extra').value.trim() || null
+      extra: document.getElementById('f-extra').value.trim() || null,
+      reservation: document.getElementById('f-reservation').value,
+      gratuit: document.getElementById('f-gratuit').checked,
+      contactTel: document.getElementById('f-tel').value.trim() || null,
+      contactEmail: document.getElementById('f-email').value.trim() || null
     };
     try{
       if(isEdit){
