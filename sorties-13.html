@@ -417,6 +417,7 @@
       <div class="mode-toggle">
         <button class="pill mode-pill" id="modeBoard">📌 Panneau</button>
         <button class="pill mode-pill" id="modeScroll">📱 Scroll</button>
+        <button class="pill" id="freeToggle">🆓 Gratuit</button>
         <div id="adminZone"></div>
       </div>
     </div>
@@ -435,7 +436,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
   getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot,
-  query, where, orderBy, arrayUnion, arrayRemove, serverTimestamp, getDocs
+  query, where, orderBy, serverTimestamp, getDocs
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import {
   getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuthStateChanged
@@ -460,15 +461,25 @@ const ADMIN_UID = "p3ylIcwSM1MkmuJGW2G2rPz3vSy2";
 
 const CATS = ["Marché","Concert","Fête","Nature","Expo","Feu","Découverte"];
 const VILLES = [
-  "Marseille","Aix-en-Provence","Arles","Martigues","Aubagne","Salon-de-Provence","Istres","Vitrolles",
-  "Marignane","Miramas","La Ciotat","Gardanne","Berre-l'Étang","Fos-sur-Mer","Port-de-Bouc",
-  "Châteauneuf-les-Martigues","Septèmes-les-Vallons","Les Pennes-Mirabeau","Rognac","Velaux","Ventabren",
-  "Éguilles","Cassis","La Fare-les-Oliviers","Lambesc","Pélissanne","Saint-Rémy-de-Provence","Tarascon",
-  "Châteaurenard","Trets","Gréasque","Peynier","Rousset","Meyreuil","Fuveau","Cabriès","Bouc-Bel-Air",
-  "Simiane-Collongue","Allauch","Plan-de-Cuques","Roquevaire","Auriol","La Bouilladisse","Cuges-les-Pins",
-  "Ceyreste","Carnoux-en-Provence","Gémenos","Peypin","Saint-Cannat","Lançon-Provence","Grans",
-  "Saint-Chamas","Sausset-les-Pins","Carry-le-Rouet","Le Rove","Ensuès-la-Redonne","Gignac-la-Nerthe",
-  "Maussane-les-Alpilles","Eyguières","Mallemort","Charleval","Sénas","Noves"
+  "Aix-en-Provence", "Allauch", "Alleins", "Arles", "Aubagne", "Aureille", "Auriol", "Aurons", "Barbentane",
+  "Beaurecueil", "Belcodène", "Berre-l'Étang", "Bouc-Bel-Air", "Boulbon", "Cabannes", "Cabriès", "Cadolive",
+  "Carnoux-en-Provence", "Carry-le-Rouet", "Cassis", "Ceyreste", "Charleval", "Châteauneuf-le-Rouge",
+  "Châteauneuf-les-Martigues", "Châteaurenard", "Cornillon-Confoux", "Coudoux", "Cuges-les-Pins", "Éguilles",
+  "Ensuès-la-Redonne", "Eygalières", "Eyguières", "Eyragues", "Fontvieille", "Fos-sur-Mer", "Fuveau",
+  "Gardanne", "Gémenos", "Gignac-la-Nerthe", "Grans", "Graveson", "Gréasque", "Istres", "Jouques",
+  "La Barben", "La Bouilladisse", "La Ciotat", "La Destrousse", "La Fare-les-Oliviers",
+  "La Penne-sur-Huveaune", "La Roque-d'Anthéron", "Lamanon", "Lambesc", "Lançon-Provence",
+  "Le Puy-Sainte-Réparade", "Le Rove", "Le Tholonet", "Les Baux-de-Provence", "Les Pennes-Mirabeau",
+  "Maillane", "Mallemort", "Marignane", "Marseille", "Martigues", "Mas-Blanc-des-Alpilles",
+  "Maussane-les-Alpilles", "Meyrargues", "Meyreuil", "Mimet", "Miramas", "Mollégès", "Mouriès", "Noves",
+  "Orgon", "Paradou", "Pélissanne", "Peynier", "Peypin", "Peyrolles-en-Provence", "Plan-d'Orgon",
+  "Plan-de-Cuques", "Port-Saint-Louis-du-Rhône", "Port-de-Bouc", "Puyloubier", "Rognac", "Rognes", "Rognonas",
+  "Roquefort-la-Bédoule", "Roquevaire", "Rousset", "Saint-Andiol", "Saint-Antonin-sur-Bayon", "Saint-Cannat",
+  "Saint-Chamas", "Saint-Estève-Janson", "Saint-Étienne-du-Grès", "Saint-Marc-Jaumegarde",
+  "Saint-Martin-de-Crau", "Saint-Mitre-les-Remparts", "Saint-Paul-lès-Durance", "Saint-Pierre-de-Mézoargues",
+  "Saint-Rémy-de-Provence", "Saint-Savournin", "Saint-Victoret", "Saintes-Maries-de-la-Mer",
+  "Salon-de-Provence", "Sausset-les-Pins", "Sénas", "Septèmes-les-Vallons", "Simiane-Collongue", "Tarascon",
+  "Trets", "Vauvenargues", "Velaux", "Venelles", "Ventabren", "Vernègues", "Verquières", "Vitrolles"
 ];
 const CAT_EMOJI = {"Marché":"🧺","Concert":"🎵","Fête":"🎉","Nature":"🥾","Expo":"🖼️","Feu":"🎆","Découverte":"🧭"};
 
@@ -489,6 +500,13 @@ const VILLE_SECTEUR = {
   "Cuges-les-Pins":"aubagne",
   "Gémenos":"aubagne",
   "Peypin":"aubagne",
+  "La Penne-sur-Huveaune":"aubagne",
+  "Roquefort-la-Bédoule":"aubagne",
+  "Saint-Savournin":"aubagne",
+  "Belcodène":"aubagne",
+  "Cadolive":"aubagne",
+  "La Destrousse":"aubagne",
+  "Mimet":"aubagne",
   "Aix-en-Provence":"aix",
   "Ventabren":"aix",
   "Éguilles":"aix",
@@ -502,6 +520,23 @@ const VILLE_SECTEUR = {
   "Gréasque":"aix",
   "Peynier":"aix",
   "Saint-Cannat":"aix",
+  "Beaurecueil":"aix",
+  "Châteauneuf-le-Rouge":"aix",
+  "Le Tholonet":"aix",
+  "Saint-Antonin-sur-Bayon":"aix",
+  "Saint-Marc-Jaumegarde":"aix",
+  "Vauvenargues":"aix",
+  "Venelles":"aix",
+  "Puyloubier":"aix",
+  "Meyrargues":"aix",
+  "Jouques":"aix",
+  "Peyrolles-en-Provence":"aix",
+  "Le Puy-Sainte-Réparade":"aix",
+  "Saint-Paul-lès-Durance":"aix",
+  "Saint-Estève-Janson":"aix",
+  "Rognes":"aix",
+  "La Roque-d'Anthéron":"aix",
+  "Coudoux":"aix",
   "Martigues":"berre",
   "Istres":"berre",
   "Vitrolles":"berre",
@@ -522,6 +557,10 @@ const VILLE_SECTEUR = {
   "Le Rove":"berre",
   "Ensuès-la-Redonne":"berre",
   "Gignac-la-Nerthe":"berre",
+  "Saint-Mitre-les-Remparts":"berre",
+  "Saint-Victoret":"berre",
+  "Port-Saint-Louis-du-Rhône":"berre",
+  "Cornillon-Confoux":"berre",
   "Salon-de-Provence":"salon",
   "La Fare-les-Oliviers":"salon",
   "Lambesc":"salon",
@@ -533,9 +572,37 @@ const VILLE_SECTEUR = {
   "Charleval":"salon",
   "Sénas":"salon",
   "Noves":"salon",
+  "Alleins":"salon",
+  "Aureille":"salon",
+  "Aurons":"salon",
+  "La Barben":"salon",
+  "Les Baux-de-Provence":"salon",
+  "Eygalières":"salon",
+  "Eyragues":"salon",
+  "Fontvieille":"salon",
+  "Lamanon":"salon",
+  "Maillane":"salon",
+  "Mas-Blanc-des-Alpilles":"salon",
+  "Mouriès":"salon",
+  "Orgon":"salon",
+  "Paradou":"salon",
+  "Rognonas":"salon",
+  "Saint-Andiol":"salon",
+  "Saint-Étienne-du-Grès":"salon",
+  "Vernègues":"salon",
+  "Verquières":"salon",
+  "Plan-d'Orgon":"salon",
   "Arles":"arles",
   "Tarascon":"arles",
-  "Châteaurenard":"arles"
+  "Châteaurenard":"arles",
+  "Barbentane":"arles",
+  "Boulbon":"arles",
+  "Cabannes":"arles",
+  "Graveson":"arles",
+  "Mollégès":"arles",
+  "Saintes-Maries-de-la-Mer":"arles",
+  "Saint-Martin-de-Crau":"arles",
+  "Saint-Pierre-de-Mézoargues":"arles"
 };
 
 const SECTEUR_LABEL = {
@@ -551,6 +618,12 @@ function getSecteur(ville){
   return VILLE_SECTEUR[ville] || "marseille";
 }
 
+function randomCardColor(id){
+  let hash = 0;
+  for(let i=0; i<id.length; i++){ hash = id.charCodeAt(i) + ((hash << 5) - hash); }
+  const hue = Math.abs(hash) % 360;
+  return `radial-gradient(circle at 30% 20%, hsl(${hue},50%,52%), hsl(${hue},58%,34%) 70%)`;
+}
 
 function demoImg(bg, label){
   const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='700'><rect width='100%' height='100%' fill='${bg}'/><text x='50%' y='50%' font-family='sans-serif' font-size='30' fill='white' text-anchor='middle' dominant-baseline='middle'>${label}</text></svg>`;
@@ -624,6 +697,7 @@ let activeCat = "Toutes";
 let activeVille = "Toutes";
 let sortMode = "date";
 let viewMode = "board";
+let onlyFree = false;
 let expandedIds = new Set();
 
 function showConfigWarning(msg){
@@ -705,10 +779,10 @@ function getFilteredList(){
   let list = sorties.filter(s=>
     (activeCat==='Toutes' || (s.cats||[]).includes(activeCat)) &&
     (activeVille==='Toutes' || s.ville===activeVille) &&
+    (!onlyFree || s.gratuit) &&
     upcomingDates(s).length > 0
   );
-  if(sortMode==='hot') list = list.slice().sort((a,b)=>(b.votedBy||[]).length-(a.votedBy||[]).length);
-  else list = list.slice().sort((a,b)=> upcomingDates(a)[0].date.localeCompare(upcomingDates(b)[0].date));
+  list = list.slice().sort((a,b)=> upcomingDates(a)[0].date.localeCompare(upcomingDates(b)[0].date));
   return list;
 }
 
@@ -716,6 +790,7 @@ function renderModeToggle(){
   document.getElementById('modeBoard').classList.toggle('active', viewMode==='board');
   document.getElementById('modeScroll').classList.toggle('active', viewMode==='scroll');
   document.getElementById('content').classList.toggle('mode-scroll', viewMode==='scroll');
+  document.getElementById('freeToggle').classList.toggle('active', onlyFree);
 }
 
 function renderFilters(){
@@ -748,7 +823,7 @@ async function seedDemoData(){
   try{
     for(const item of DEMO_SORTIES){
       await addDoc(collection(db,'sorties'), {
-        ...item, dateFin: lastDate(item.dates), status:'published', votedBy:[], commentaires:[], createdAt: serverTimestamp()
+        ...item, dateFin: lastDate(item.dates), status:'published', createdAt: serverTimestamp()
       });
     }
   }catch(err){
@@ -803,12 +878,14 @@ function renderAdminBadge(){
       <button class="pill admin-badge" id="modBtn">🛡️ Modération${pendingSorties.length ? `<span class="count">${pendingSorties.length}</span>` : ''}</button>
       <button class="pill" id="bulkBtn">📥 Import</button>
       <button class="pill" id="exportBtn">📤 Export</button>
+      <button class="pill" id="syncBtn">🔄 Synchroniser</button>
       <button class="pill" id="deleteAllBtn" style="background:var(--pin); border-color:var(--pin); color:#fff8ec;">🗑️ Tout supprimer</button>
       <button class="pill" id="logoutBtn">Déconnexion</button>
     `;
     document.getElementById('modBtn').onclick = openModPanel;
     document.getElementById('bulkBtn').onclick = openBulkImport;
     document.getElementById('exportBtn').onclick = exportJson;
+    document.getElementById('syncBtn').onclick = syncJson;
     document.getElementById('deleteAllBtn').onclick = openDeleteAllConfirm;
     document.getElementById('logoutBtn').onclick = ()=>{
       signOut(auth).then(()=> signInAnonymously(auth));
@@ -889,8 +966,10 @@ function openDeleteAllConfirm(){
   };
 }
 
-function exportJson(){
-  const clean = sorties.map(s=>({
+let syncFileHandle = null;
+
+function toExportFormat(){
+  return sorties.map(s=>({
     titre: s.titre,
     cats: s.cats || [],
     ville: s.ville,
@@ -901,7 +980,36 @@ function exportJson(){
     reservation: s.reservation || "Aucune",
     contactTel: s.contactTel || null,
     contactEmail: s.contactEmail || null,
-    gratuit: !!s.gratuit  }));
+    gratuit: !!s.gratuit
+  }));
+}
+
+async function syncJson(){
+  if(!window.showSaveFilePicker){
+    alert("Ton navigateur ne permet pas la synchronisation directe avec un fichier (fonctionne sur Chrome/Edge desktop). Export classique lancé à la place.");
+    exportJson();
+    return;
+  }
+  try{
+    if(!syncFileHandle){
+      syncFileHandle = await window.showSaveFilePicker({
+        suggestedName: 'sorties-13-sync.json',
+        types: [{description:'JSON', accept:{'application/json':['.json']}}]
+      });
+    }
+    const writable = await syncFileHandle.createWritable();
+    await writable.write(JSON.stringify(toExportFormat(), null, 2));
+    await writable.close();
+    alert("✅ Fichier synchronisé avec l'état actuel de Firestore.");
+  }catch(err){
+    if(err.name === 'AbortError') return;
+    console.error(err);
+    alert("Erreur de synchronisation : " + err.message);
+  }
+}
+
+function exportJson(){
+  const clean = toExportFormat();
   const blob = new Blob([JSON.stringify(clean, null, 2)], {type:"application/json"});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -1001,8 +1109,6 @@ function openBulkImport(){
             gratuit: !!item.gratuit,
             images: [],
             status: 'published',
-            votedBy: [],
-            commentaires: [],
             createdAt: serverTimestamp()
           });
           created++;
@@ -1073,9 +1179,6 @@ function renderBoard(){
     const upc = upcomingDates(s);
     const d = new Date(upc[0].date + 'T00:00:00');
     const dateFmt = d.toLocaleDateString('fr-FR', {day:'2-digit', month:'short'});
-    const votes = (s.votedBy||[]).length;
-    const voted = currentUid ? (s.votedBy||[]).includes(currentUid) : false;
-    const comCount = (s.commentaires||[]).length;
     return `
     <div class="flyer" data-id="${s.id}">
       ${s.images && s.images[0] ? `<img class="flyer-img" src="${s.images[0]}" alt="">` : ''}
@@ -1091,16 +1194,9 @@ function renderBoard(){
       ${s.gratuit ? `<div class="gratuit-tag-flyer">🆓 Gratuit</div>` : ''}
       ${s.reservation === 'Obligatoire' ? `<div class="reservation-tag-flyer">🎟️ Réservation obligatoire</div>` : ''}
       <div class="desc">${s.desc}</div>
-      <div class="flyer-foot">
-        <button class="vote-btn ${voted?'voted':''}" data-vote="${s.id}" ${CONFIG_READY?'':'disabled'}>🔥 ${votes}</button>
-        <span class="comment-count">💬 ${comCount}</span>
-      </div>
     </div>`;
   }).join('');
 
-  el.querySelectorAll('[data-vote]').forEach(btn=>{
-    btn.onclick = (e)=>{ e.stopPropagation(); toggleVote(btn.dataset.vote); };
-  });
   el.querySelectorAll('.flyer').forEach(card=>{
     card.onclick = ()=> openDetail(card.dataset.id);
   });
@@ -1112,9 +1208,6 @@ function buildScrollCardHtml(s, i, total){
   const dPrimary = new Date(primary.date + 'T00:00:00');
   const dateFmt = dPrimary.toLocaleDateString('fr-FR', {weekday:'short', day:'2-digit', month:'short'});
   const imgs = s.images || [];
-  const votes = (s.votedBy||[]).length;
-  const voted = currentUid ? (s.votedBy||[]).includes(currentUid) : false;
-  const comCount = (s.commentaires||[]).length;
   const expanded = expandedIds.has(s.id);
   const mediaHtml = imgs.length ? `
     <div class="scroll-media">
@@ -1138,7 +1231,7 @@ function buildScrollCardHtml(s, i, total){
   const primaryCat = (s.cats && s.cats[0]) || 'Découverte';
   const secteur = getSecteur(s.ville);
   return `
-  <div class="scroll-card secc-${secteur} ${imgs.length?'has-media':''}" data-emoji="${CAT_EMOJI[primaryCat]||'✨'}" data-id="${s.id}">
+  <div class="scroll-card secc-${secteur} ${imgs.length?'has-media':''}" data-emoji="${CAT_EMOJI[primaryCat]||'✨'}" data-id="${s.id}" style="background:${randomCardColor(s.id)};">
     ${mediaHtml}
     <div class="scroll-top">
       <div class="scroll-top-left">
@@ -1155,8 +1248,6 @@ function buildScrollCardHtml(s, i, total){
     <div class="scroll-desc">${expanded ? (s.desc + ' ' + (s.extra||'')) : s.desc}</div>
     ${s.extra ? `<button class="desc-toggle" data-toggle="${s.id}">${expanded ? '− moins' : '+ plus'}</button>` : ''}
     <div class="scroll-actions">
-      <button class="scroll-action-btn ${voted?'voted':''}" data-svote="${s.id}">🔥<span>${votes}</span></button>
-      <button class="scroll-action-btn" data-scomment="${s.id}">💬<span>${comCount}</span></button>
       ${isAdmin ? `<button class="scroll-action-btn" data-spublish="1">✎<span>ajouter</span></button>` : ''}
     </div>
     ${i===0 ? '<div class="scroll-hint">▲ glisse pour voir la suite ▲</div>' : ''}
@@ -1238,11 +1329,11 @@ function renderScrollFeed(){
     };
   }
 
-  el.querySelectorAll('[data-svote]').forEach(btn=>{
-    btn.onclick = (e)=>{ e.stopPropagation(); toggleVote(btn.dataset.svote); };
-  });
-  el.querySelectorAll('[data-scomment]').forEach(btn=>{
-    btn.onclick = (e)=>{ e.stopPropagation(); openDetail(btn.dataset.scomment); };
+  el.querySelectorAll('.scroll-card[data-id]').forEach(card=>{
+    card.addEventListener('click', (e)=>{
+      if(e.target.closest('.scroll-actions') || e.target.closest('.date-swipe') || e.target.closest('.desc-toggle') || e.target.closest('.media-strip')) return;
+      openDetail(card.dataset.id);
+    });
   });
   el.querySelectorAll('[data-spublish]').forEach(btn=>{
     btn.onclick = (e)=>{ e.stopPropagation(); openPublishForm(); };
@@ -1263,32 +1354,6 @@ function renderScrollFeed(){
   });
 }
 
-async function toggleVote(id){
-  if(!CONFIG_READY || !currentUid) return;
-  const s = sorties.find(x=>x.id===id);
-  if(!s) return;
-  const voted = (s.votedBy||[]).includes(currentUid);
-  try{
-    await updateDoc(doc(db,'sorties',id), {
-      votedBy: voted ? arrayRemove(currentUid) : arrayUnion(currentUid)
-    });
-  }catch(err){
-    console.error(err);
-    showConfigWarning("Erreur en votant : " + err.message);
-  }
-}
-
-async function addComment(id, who, texte){
-  try{
-    await updateDoc(doc(db,'sorties',id), {
-      commentaires: arrayUnion({who: who || "Anonyme", texte})
-    });
-  }catch(err){
-    console.error(err);
-    showConfigWarning("Erreur en commentant : " + err.message);
-  }
-}
-
 function openDetail(id){
   const s = sorties.find(x=>x.id===id);
   if(!s) return;
@@ -1298,9 +1363,6 @@ function openDetail(id){
     const lbl = dd.toLocaleDateString('fr-FR', {weekday:'long', day:'2-digit', month:'long'});
     return `${lbl} · ${dt.heure}`;
   }).join('<br>');
-  const votes = (s.votedBy||[]).length;
-  const voted = currentUid ? (s.votedBy||[]).includes(currentUid) : false;
-  const comments = s.commentaires || [];
   document.getElementById('modalRoot').innerHTML = `
   <div class="overlay" id="overlay">
     <div class="modal">
@@ -1320,33 +1382,16 @@ function openDetail(id){
           ${s.contactEmail ? `<div><a href="mailto:${s.contactEmail}">✉️ ${s.contactEmail}</a></div>` : ''}
         </div>
       ` : ''}
-      <div class="flyer-foot" style="margin-bottom:14px; flex-wrap:wrap; gap:8px;">
-        <button class="vote-btn ${voted?'voted':''}" data-vote="${s.id}" ${CONFIG_READY?'':'disabled'}>🔥 ${votes} — j'y vais</button>
-        ${isAdmin ? `<button class="vote-btn" id="editBtn">✏️ Modifier</button>` : ''}
-        ${isAdmin ? `<button class="vote-btn" id="deleteBtn" style="border-color:var(--pin); color:var(--pin);">🗑 Supprimer</button>` : ''}
+      ${isAdmin ? `
+      <div class="flyer-foot" style="margin-bottom:6px; flex-wrap:wrap; gap:8px;">
+        <button class="vote-btn" id="editBtn">✏️ Modifier</button>
+        <button class="vote-btn" id="deleteBtn" style="border-color:var(--pin); color:var(--pin);">🗑 Supprimer</button>
       </div>
-      <div class="comments">
-        <div id="commentsList">
-          ${comments.map(c=>`<div class="comment"><span class="who">${c.who}</span>${c.texte}</div>`).join('') || '<div class="comment" style="color:#5a4c3899;">Aucun commentaire pour l’instant.</div>'}
-        </div>
-        <div class="comment-form">
-          <input type="text" id="commentName" class="comment-name" placeholder="Ton prénom">
-          <input type="text" id="newComment" placeholder="Ajouter un commentaire...">
-          <button id="addCommentBtn" ${CONFIG_READY?'':'disabled'}>Envoyer</button>
-        </div>
-      </div>
+      ` : ''}
     </div>
   </div>`;
   document.getElementById('overlay').onclick = (e)=>{ if(e.target.id==='overlay') closeModal(); };
   document.getElementById('closeModal').onclick = closeModal;
-  document.querySelector('[data-vote="'+id+'"]').onclick = ()=> toggleVote(id);
-  document.getElementById('addCommentBtn').onclick = ()=>{
-    const val = document.getElementById('newComment').value.trim();
-    if(!val) return;
-    const who = document.getElementById('commentName').value.trim();
-    addComment(id, who, val);
-    closeModal();
-  };
   if(isAdmin){
     document.getElementById('deleteBtn').onclick = ()=>{
       if(confirm("Supprimer définitivement cette sortie ?")){
@@ -1481,8 +1526,6 @@ function openPublishForm(editing){
           ...payload,
           images: [],
           status: 'published',
-          votedBy: [],
-          commentaires: [],
           createdAt: serverTimestamp()
         });
       }
@@ -1499,6 +1542,7 @@ function openPublishForm(editing){
 document.getElementById('openPublish').onclick = ()=> openPublishForm();
 document.getElementById('modeBoard').onclick = ()=>{ viewMode='board'; render(); };
 document.getElementById('modeScroll').onclick = ()=>{ viewMode='scroll'; render(); };
+document.getElementById('freeToggle').onclick = ()=>{ onlyFree = !onlyFree; render(); };
 
 function render(){
   renderModeToggle();
