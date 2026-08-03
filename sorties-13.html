@@ -74,6 +74,20 @@
     background:#2f2416; color:#f3e6c8; border:1px solid #4a3a24;
     padding:8px 10px; border-radius:3px; font-size:13px;
   }
+  .ville-filter-bar{
+    flex:0 0 auto; background:var(--ochre); color:#fff8ec;
+    padding:10px 20px; display:flex; justify-content:space-between; align-items:center;
+    font-family:'Space Mono',monospace; font-size:13px;
+  }
+  .ville-filter-bar strong{font-family:'Big Shoulders Display',sans-serif; font-size:16px; letter-spacing:0.3px;}
+  .ville-filter-bar button{
+    background:#00000030; color:#fff8ec; border:1px solid #ffffff50; border-radius:20px;
+    padding:6px 14px; font-family:'Space Mono',monospace; font-size:12px; cursor:pointer;
+  }
+  .ville-filter-bar button:hover{background:#00000050;}
+  .flyer-ville-tag, .scroll-ville-tag{cursor:pointer;}
+  .flyer-ville-tag:hover{text-decoration:underline;}
+  .scroll-ville-tag:hover{filter:brightness(1.1);}
   .pill{
     font-family:'Space Mono',monospace; font-size:12px; padding:6px 12px; border-radius:20px;
     border:1px solid #4a3a24; background:#2f2416; color:#e6d6ae; cursor:pointer;
@@ -422,6 +436,7 @@
       </div>
     </div>
   </div>
+  <div class="ville-filter-bar" id="villeFilterBar" style="display:none;"></div>
   <div class="content" id="content">
     <div class="board" id="board"></div>
     <div class="scrollFeed" id="scrollFeed"></div>
@@ -1186,7 +1201,7 @@ function renderBoard(){
         <div style="display:flex; gap:4px; flex-wrap:wrap;">
           ${(s.cats||[]).map(c=>`<span class="flyer-cat ${catClass(c)}" style="margin-bottom:0;">${c}</span>`).join('')}
         </div>
-        <span class="flyer-ville-tag">📍 ${s.ville}</span>
+        <span class="flyer-ville-tag" data-villetag="${s.ville}">📍 ${s.ville}</span>
       </div>
       <h3>${s.titre}</h3>
       <div class="meta">${dateFmt} · ${upc[0].heure}${upc.length>1 ? ` <span style="opacity:0.7;">· +${upc.length-1} autre${upc.length>2?'s':''} date${upc.length>2?'s':''}</span>` : ''}</div>
@@ -1199,6 +1214,9 @@ function renderBoard(){
 
   el.querySelectorAll('.flyer').forEach(card=>{
     card.onclick = ()=> openDetail(card.dataset.id);
+  });
+  el.querySelectorAll('[data-villetag]').forEach(tag=>{
+    tag.onclick = (e)=>{ e.stopPropagation(); filterByVille(tag.dataset.villetag); };
   });
 }
 
@@ -1236,7 +1254,7 @@ function buildScrollCardHtml(s, i, total){
     <div class="scroll-top">
       <div class="scroll-top-left">
         ${(s.cats||[]).map(c=>`<span class="scroll-cat-tag">${CAT_EMOJI[c]||''} ${c}</span>`).join('')}
-        <span class="scroll-ville-tag">📍 ${s.ville}</span>
+        <span class="scroll-ville-tag" data-villetag="${s.ville}">📍 ${s.ville}</span>
         ${s.gratuit ? `<span class="gratuit-tag">🆓 Gratuit</span>` : ''}
         ${s.reservation === 'Obligatoire' ? `<span class="reservation-tag">🎟️ Résa obligatoire</span>` : ''}
       </div>
@@ -1331,9 +1349,12 @@ function renderScrollFeed(){
 
   el.querySelectorAll('.scroll-card[data-id]').forEach(card=>{
     card.addEventListener('click', (e)=>{
-      if(e.target.closest('.scroll-actions') || e.target.closest('.date-swipe') || e.target.closest('.desc-toggle') || e.target.closest('.media-strip')) return;
+      if(e.target.closest('.scroll-actions') || e.target.closest('.date-swipe') || e.target.closest('.desc-toggle') || e.target.closest('.media-strip') || e.target.closest('[data-villetag]')) return;
       openDetail(card.dataset.id);
     });
+  });
+  el.querySelectorAll('[data-villetag]').forEach(tag=>{
+    tag.onclick = (e)=>{ e.stopPropagation(); filterByVille(tag.dataset.villetag); };
   });
   el.querySelectorAll('[data-spublish]').forEach(btn=>{
     btn.onclick = (e)=>{ e.stopPropagation(); openPublishForm(); };
@@ -1544,9 +1565,28 @@ document.getElementById('modeBoard').onclick = ()=>{ viewMode='board'; render();
 document.getElementById('modeScroll').onclick = ()=>{ viewMode='scroll'; render(); };
 document.getElementById('freeToggle').onclick = ()=>{ onlyFree = !onlyFree; render(); };
 
+function renderVilleFilterBar(){
+  const bar = document.getElementById('villeFilterBar');
+  if(activeVille === 'Toutes'){
+    bar.style.display = 'none';
+    return;
+  }
+  bar.style.display = 'flex';
+  bar.innerHTML = `<span>📍 <strong>${activeVille}</strong> — toutes les sorties</span><button id="villeBackBtn">← Retour à l'accueil</button>`;
+  document.getElementById('villeBackBtn').onclick = ()=>{ activeVille = 'Toutes'; render(); };
+}
+
+function filterByVille(ville){
+  activeVille = ville;
+  viewMode = 'board';
+  render();
+  document.getElementById('content').scrollTop = 0;
+}
+
 function render(){
   renderModeToggle();
   renderAdminBadge();
+  renderVilleFilterBar();
   renderBoard();
   renderScrollFeed();
 }
