@@ -451,7 +451,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
   getFirestore, collection, addDoc, doc, setDoc, updateDoc, deleteDoc, onSnapshot,
-  query, where, orderBy, serverTimestamp, getDocs
+  query, where, orderBy, serverTimestamp, getDocs, increment
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import {
   getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuthStateChanged
@@ -761,6 +761,23 @@ function updateAdminState(user){
   else pendingSorties = [];
 }
 
+async function trackVisit(){
+  if(sessionStorage.getItem('visit_tracked')) return;
+  sessionStorage.setItem('visit_tracked', '1');
+  const today = new Date().toISOString().slice(0, 10);
+  try{
+    await setDoc(doc(db, "visites_total", "global"), {
+      count: increment(1),
+      lastVisit: serverTimestamp()
+    }, { merge: true });
+    await setDoc(doc(db, "visites_jour", today), {
+      count: increment(1)
+    }, { merge: true });
+  }catch(e){
+    console.warn("Tracking échoué", e);
+  }
+}
+
 if(CONFIG_READY){
   app = initializeApp(firebaseConfig);
   db = getFirestore(app);
@@ -771,6 +788,7 @@ if(CONFIG_READY){
       updateAdminState(user);
       startListening();
       render();
+      trackVisit();
     } else {
       signInAnonymously(auth).catch(err=>{
         console.error(err);
