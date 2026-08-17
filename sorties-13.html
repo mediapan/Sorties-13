@@ -3,7 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Le Panneau — Sorties dans les Bouches-du-Rhône</title>
+<title>Le Panneau — Sorties &amp; bons plans dans les Bouches-du-Rhône (13)</title>
+<meta name="description" content="Marchés, fêtes votives, concerts, feux d'artifice, expos et randos près de chez vous : découvrez les sorties et bons plans dans les 119 communes des Bouches-du-Rhône, mis à jour chaque semaine.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://mediapan.github.io/Sorties-13/sorties-13.html">
+
+<!-- Open Graph / réseaux sociaux -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Le Panneau">
+<meta property="og:title" content="Le Panneau — Sorties &amp; bons plans dans les Bouches-du-Rhône">
+<meta property="og:description" content="Marchés, fêtes votives, concerts, feux d'artifice, expos et randos près de chez vous, dans les 119 communes des Bouches-du-Rhône.">
+<meta property="og:url" content="https://mediapan.github.io/Sorties-13/sorties-13.html">
+<meta property="og:image" content="https://mediapan.github.io/Sorties-13/og-image.jpg">
+<meta property="og:locale" content="fr_FR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Le Panneau — Sorties &amp; bons plans dans les Bouches-du-Rhône">
+<meta name="twitter:description" content="Marchés, fêtes votives, concerts, feux d'artifice, expos et randos près de chez vous, dans les 119 communes des Bouches-du-Rhône.">
+<meta name="twitter:image" content="https://mediapan.github.io/Sorties-13/og-image.jpg">
+
+<!-- Favicon (emoji punaise 📌 en SVG, pas de fichier à héberger) -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%8C%3C/text%3E%3C/svg%3E">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;700;900&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -450,8 +470,8 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
-  getFirestore, collection, addDoc, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot,
-  query, where, orderBy, serverTimestamp, getDocs, increment
+  getFirestore, collection, addDoc, doc, setDoc, updateDoc, deleteDoc, onSnapshot,
+  query, where, orderBy, serverTimestamp, getDocs
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import {
   getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuthStateChanged
@@ -761,23 +781,6 @@ function updateAdminState(user){
   else pendingSorties = [];
 }
 
-async function trackVisit(){
-  if(sessionStorage.getItem('visit_tracked')) return;
-  sessionStorage.setItem('visit_tracked', '1');
-  const today = new Date().toISOString().slice(0, 10);
-  try{
-    await setDoc(doc(db, "visites_total", "global"), {
-      count: increment(1),
-      lastVisit: serverTimestamp()
-    }, { merge: true });
-    await setDoc(doc(db, "visites_jour", today), {
-      count: increment(1)
-    }, { merge: true });
-  }catch(e){
-    console.warn("Tracking échoué", e);
-  }
-}
-
 if(CONFIG_READY){
   app = initializeApp(firebaseConfig);
   db = getFirestore(app);
@@ -788,7 +791,6 @@ if(CONFIG_READY){
       updateAdminState(user);
       startListening();
       render();
-      trackVisit();
     } else {
       signInAnonymously(auth).catch(err=>{
         console.error(err);
@@ -908,7 +910,6 @@ function renderAdminBadge(){
   if(!el) return;
   if(isAdmin){
     el.innerHTML = `
-      <button class="pill" id="statsBtn">📊 Stats</button>
       <button class="pill admin-badge" id="modBtn">🛡️ Modération${pendingSorties.length ? `<span class="count">${pendingSorties.length}</span>` : ''}</button>
       <button class="pill" id="bulkBtn">📥 Import</button>
       <button class="pill" id="exportBtn">📤 Export</button>
@@ -917,7 +918,6 @@ function renderAdminBadge(){
       <button class="pill" id="deleteAllBtn" style="background:var(--pin); border-color:var(--pin); color:#fff8ec;">🗑️ Tout supprimer</button>
       <button class="pill" id="logoutBtn">Déconnexion</button>
     `;
-    document.getElementById('statsBtn').onclick = openStatsPanel;
     document.getElementById('modBtn').onclick = openModPanel;
     document.getElementById('bulkBtn').onclick = openBulkImport;
     document.getElementById('exportBtn').onclick = exportJson;
@@ -930,52 +930,6 @@ function renderAdminBadge(){
   } else {
     el.innerHTML = `<button class="pill" id="adminLoginBtn">🔑 Admin</button>`;
     document.getElementById('adminLoginBtn').onclick = openLoginForm;
-  }
-}
-
-async function openStatsPanel(){
-  document.getElementById('modalRoot').innerHTML = `
-  <div class="overlay" id="overlay">
-    <div class="modal">
-      <button class="close" id="closeModal">✕ fermer</button>
-      <h2>📊 Statistiques de visites</h2>
-      <div id="stats-content" style="font-family:'Space Mono',monospace; font-size:13px;">Chargement...</div>
-    </div>
-  </div>`;
-  document.getElementById('overlay').onclick = (e)=>{ if(e.target.id==='overlay') closeModal(); };
-  document.getElementById('closeModal').onclick = closeModal;
-
-  try{
-    const totalSnap = await getDoc(doc(db,'visites_total','global'));
-    const total = totalSnap.exists() ? (totalSnap.data().count || 0) : 0;
-
-    const joursSnap = await getDocs(collection(db,'visites_jour'));
-    const jours = joursSnap.docs.map(d=>({date:d.id, count:d.data().count||0}))
-      .sort((a,b)=>a.date.localeCompare(b.date))
-      .slice(-14);
-
-    const maxCount = Math.max(1, ...jours.map(j=>j.count));
-    const barsHtml = jours.map(j=>{
-      const h = Math.round((j.count/maxCount)*60) || 2;
-      const lbl = j.date.slice(5);
-      return `<div style="display:flex; flex-direction:column; align-items:center; gap:4px; flex:1; min-width:0;">
-        <div style="font-size:10px;">${j.count}</div>
-        <div style="width:100%; max-width:22px; height:${h}px; background:var(--cyprus); border-radius:2px 2px 0 0;"></div>
-        <div style="font-size:9px; color:var(--ink-soft); white-space:nowrap;">${lbl}</div>
-      </div>`;
-    }).join('');
-
-    document.getElementById('stats-content').innerHTML = `
-      <div style="font-size:32px; font-family:'Big Shoulders Display',sans-serif; font-weight:900; margin-bottom:2px;">${total}</div>
-      <div style="color:var(--ink-soft); margin-bottom:18px;">visites au total</div>
-      ${jours.length ? `
-        <div style="display:flex; align-items:flex-end; gap:6px; height:100px; border-bottom:1px solid #00000020; padding-bottom:2px;">${barsHtml}</div>
-        <div style="margin-top:8px; color:var(--ink-soft); font-size:11px;">${jours.length} derniers jour(s) avec données</div>
-      ` : `<div style="color:var(--ink-soft);">Pas encore de données journalières.</div>`}
-    `;
-  }catch(err){
-    console.error(err);
-    document.getElementById('stats-content').innerHTML = "❌ Erreur : " + err.message;
   }
 }
 
@@ -1346,7 +1300,7 @@ function renderBoard(){
     const dateFmt = d.toLocaleDateString('fr-FR', {day:'2-digit', month:'short'});
     return `
     <div class="flyer" data-id="${s.id}">
-      ${s.images && s.images[0] ? `<img class="flyer-img" src="${s.images[0]}" alt="">` : ''}
+      ${s.images && s.images[0] ? `<img class="flyer-img" src="${s.images[0]}" alt="${s.titre} — ${s.ville}" loading="lazy">` : ''}
       <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:10px;">
         <div style="display:flex; gap:4px; flex-wrap:wrap;">
           ${(s.cats||[]).map(c=>`<span class="flyer-cat ${catClass(c)}" style="margin-bottom:0;">${c}</span>`).join('')}
@@ -1733,12 +1687,51 @@ function filterByVille(ville){
   document.getElementById('content').scrollTop = 0;
 }
 
+function renderJsonLd(){
+  let el = document.getElementById('jsonLdEvents');
+  if(!el){
+    el = document.createElement('script');
+    el.type = 'application/ld+json';
+    el.id = 'jsonLdEvents';
+    document.head.appendChild(el);
+  }
+  const list = getFilteredList().slice(0, 30); // limite raisonnable par page
+  if(list.length === 0){
+    el.textContent = '';
+    return;
+  }
+  const items = list.map(s=>{
+    const upc = upcomingDates(s);
+    const first = upc[0];
+    return {
+      "@type": "Event",
+      "name": s.titre,
+      "startDate": first.date,
+      "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+      "eventStatus": "https://schema.org/EventScheduled",
+      "location": {
+        "@type": "Place",
+        "name": s.ville,
+        "address": s.adresse || s.ville + ", Bouches-du-Rhône, France"
+      },
+      "description": s.desc,
+      "isAccessibleForFree": !!s.gratuit,
+      "image": (s.images && s.images.length) ? s.images : undefined
+    };
+  });
+  el.textContent = JSON.stringify({
+    "@context": "https://schema.org",
+    "@graph": items
+  }, null, 0);
+}
+
 function render(){
   renderModeToggle();
   renderAdminBadge();
   renderVilleFilterBar();
   renderBoard();
   renderScrollFeed();
+  renderJsonLd();
 }
 render();
 </script>
