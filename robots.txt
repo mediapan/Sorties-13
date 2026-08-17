@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://mediapan.github.io/Sorties-13/sitemap.xml
