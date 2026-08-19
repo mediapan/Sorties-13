@@ -472,7 +472,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
   getFirestore, collection, addDoc, doc, setDoc, updateDoc, deleteDoc, onSnapshot,
-  query, where, orderBy, serverTimestamp, getDocs
+  query, where, orderBy, serverTimestamp, getDocs, getDoc, increment
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import {
   getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuthStateChanged
@@ -775,6 +775,18 @@ function startPendingListening(){
   });
 }
 
+let visitTracked = false;
+function trackVisit(uid){
+  if(visitTracked) return;
+  if(uid === ADMIN_UID) return; // ne pas compter les visites de l'admin lui-même
+  visitTracked = true;
+  const today = todayStr();
+  setDoc(doc(db,'stats','visits'), {
+    total: increment(1),
+    [`days.${today}`]: increment(1)
+  }, {merge:true}).catch(err=> console.error('trackVisit', err));
+}
+
 function updateAdminState(user){
   isAdmin = !!(user && !user.isAnonymous && user.uid === ADMIN_UID);
   renderAdminBadge();
@@ -791,6 +803,7 @@ if(CONFIG_READY){
       currentUid = user.uid;
       updateAdminState(user);
       startListening();
+      trackVisit(user.uid);
       render();
     } else {
       signInAnonymously(auth).catch(err=>{
@@ -912,6 +925,7 @@ function renderAdminBadge(){
   if(isAdmin){
     el.innerHTML = `
       <button class="pill admin-badge" id="modBtn">🛡️ Modération${pendingSorties.length ? `<span class="count">${pendingSorties.length}</span>` : ''}</button>
+      <button class="pill" id="visitsBtn">👁️ Visites</button>
       <button class="pill" id="bulkBtn">📥 Import</button>
       <button class="pill" id="exportBtn">📤 Export</button>
       <button class="pill" id="syncBtn">🔄 Synchroniser</button>
@@ -920,6 +934,7 @@ function renderAdminBadge(){
       <button class="pill" id="logoutBtn">Déconnexion</button>
     `;
     document.getElementById('modBtn').onclick = openModPanel;
+    document.getElementById('visitsBtn').onclick = openVisitsPanel;
     document.getElementById('bulkBtn').onclick = openBulkImport;
     document.getElementById('exportBtn').onclick = exportJson;
     document.getElementById('syncBtn').onclick = syncJson;
@@ -1243,6 +1258,49 @@ function openBulkImport(){
     btn.disabled = false;
     if(fail===0){ setTimeout(closeModal, 1600); }
   };
+}
+
+async function openVisitsPanel(){
+  document.getElementById('modalRoot').innerHTML = `
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <button class="close" id="closeModal">✕ fermer</button>
+      <h2>👁️ Visites du site</h2>
+      <div id="visitsContent" style="font-family:'Space Mono',monospace; font-size:13px; color:var(--ink-soft);">Chargement...</div>
+    </div>
+  </div>`;
+  document.getElementById('overlay').onclick = (e)=>{ if(e.target.id==='overlay') closeModal(); };
+  document.getElementById('closeModal').onclick = closeModal;
+
+  const contentEl = document.getElementById('visitsContent');
+  try{
+    const snap = await getDoc(doc(db,'stats','visits'));
+    if(!snap.exists()){
+      contentEl.innerHTML = "Aucune visite enregistrée pour l'instant.";
+      return;
+    }
+    const data = snap.data();
+    const total = data.total || 0;
+    const days = data.days || {};
+    const sortedDays = Object.keys(days).sort().reverse().slice(0, 7);
+    const rowsHtml = sortedDays.length
+      ? sortedDays.map(d=>{
+          const dd = new Date(d + 'T00:00:00');
+          const lbl = dd.toLocaleDateString('fr-FR', {weekday:'short', day:'2-digit', month:'short'});
+          return `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #00000012;">
+            <span>${lbl}</span><span>${days[d]}</span>
+          </div>`;
+        }).join('')
+      : '';
+    contentEl.innerHTML = `
+      <div style="font-family:'Big Shoulders Display',sans-serif; font-size:38px; color:var(--ink); text-transform:uppercase; margin-bottom:4px;">${total}</div>
+      <div style="margin-bottom:16px;">visite${total>1?'s':''} au total (hors admin)</div>
+      ${rowsHtml ? `<div style="border-top:1px dashed #00000030; padding-top:10px;"><strong style="color:var(--ink);">7 derniers jours</strong>${rowsHtml}</div>` : ''}
+    `;
+  }catch(err){
+    console.error(err);
+    contentEl.innerHTML = "Erreur de chargement : " + err.message + "<br><br>Vérifie que les règles Firestore autorisent la lecture de la collection <code>stats</code> pour l'admin.";
+  }
 }
 
 function openModPanel(){
