@@ -3,28 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Le Panneau — Sorties &amp; bons plans dans les Bouches-du-Rhône (13)</title>
-<meta name="description" content="Marchés, fêtes votives, concerts, feux d'artifice, expos et randos près de chez vous : découvrez les sorties et bons plans dans les 119 communes des Bouches-du-Rhône, mis à jour chaque semaine.">
-<meta name="robots" content="index, follow">
-<meta name="google-site-verification" content="9wsGyX0O1HscW3wLyui1vHR1M5LfB399TNGIaoxyD_k" />
-<link rel="canonical" href="https://mediapan.github.io/Sorties-13/sorties-13.html">
-
-<!-- Open Graph / réseaux sociaux -->
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="Le Panneau">
-<meta property="og:title" content="Le Panneau — Sorties &amp; bons plans dans les Bouches-du-Rhône">
-<meta property="og:description" content="Marchés, fêtes votives, concerts, feux d'artifice, expos et randos près de chez vous, dans les 119 communes des Bouches-du-Rhône.">
-<meta property="og:url" content="https://mediapan.github.io/Sorties-13/sorties-13.html">
-<meta property="og:image" content="https://mediapan.github.io/Sorties-13/og-image.jpg">
-<meta property="og:locale" content="fr_FR">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Le Panneau — Sorties &amp; bons plans dans les Bouches-du-Rhône">
-<meta name="twitter:description" content="Marchés, fêtes votives, concerts, feux d'artifice, expos et randos près de chez vous, dans les 119 communes des Bouches-du-Rhône.">
-<meta name="twitter:image" content="https://mediapan.github.io/Sorties-13/og-image.jpg">
-
-<!-- Favicon (emoji punaise 📌 en SVG, pas de fichier à héberger) -->
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%8C%3C/text%3E%3C/svg%3E">
-
+<title>Le Panneau — Sorties dans les Bouches-du-Rhône</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;700;900&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -453,6 +432,7 @@
         <button class="pill mode-pill" id="modeBoard">📌 Panneau</button>
         <button class="pill mode-pill" id="modeScroll">📱 Scroll</button>
         <button class="pill" id="freeToggle">🆓 Gratuit</button>
+        <button class="pill" id="todayTomorrowToggle">📆 Auj. &amp; Demain</button>
         <div id="adminZone"></div>
       </div>
     </div>
@@ -472,7 +452,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
   getFirestore, collection, addDoc, doc, setDoc, updateDoc, deleteDoc, onSnapshot,
-  query, where, orderBy, serverTimestamp, getDocs, getDoc, increment
+  query, where, orderBy, serverTimestamp, getDocs
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import {
   getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuthStateChanged
@@ -734,6 +714,7 @@ let activeVille = "Toutes";
 let sortMode = "date";
 let viewMode = "board";
 let onlyFree = false;
+let onlyTodayTomorrow = false;
 let expandedIds = new Set();
 
 function showConfigWarning(msg){
@@ -749,6 +730,18 @@ function showConfigWarning(msg){
 
 function todayStr(){
   return new Date().toISOString().slice(0,10);
+}
+
+function tomorrowStr(){
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0,10);
+}
+
+function isTodayOrTomorrow(s){
+  const t = todayStr();
+  const tm = tomorrowStr();
+  return (s.dates || (s.date ? [{date:s.date}] : [])).some(d => d.date === t || d.date === tm);
 }
 
 function startListening(){
@@ -775,18 +768,6 @@ function startPendingListening(){
   });
 }
 
-let visitTracked = false;
-function trackVisit(uid){
-  if(visitTracked) return;
-  if(uid === ADMIN_UID) return; // ne pas compter les visites de l'admin lui-même
-  visitTracked = true;
-  const today = todayStr();
-  setDoc(doc(db,'stats','visits'), {
-    total: increment(1),
-    [`days.${today}`]: increment(1)
-  }, {merge:true}).catch(err=> console.error('trackVisit', err));
-}
-
 function updateAdminState(user){
   isAdmin = !!(user && !user.isAnonymous && user.uid === ADMIN_UID);
   renderAdminBadge();
@@ -803,7 +784,6 @@ if(CONFIG_READY){
       currentUid = user.uid;
       updateAdminState(user);
       startListening();
-      trackVisit(user.uid);
       render();
     } else {
       signInAnonymously(auth).catch(err=>{
@@ -829,6 +809,7 @@ function getFilteredList(){
     (activeCat==='Toutes' || (s.cats||[]).includes(activeCat)) &&
     (activeVille==='Toutes' || s.ville===activeVille) &&
     (!onlyFree || s.gratuit) &&
+    (!onlyTodayTomorrow || isTodayOrTomorrow(s)) &&
     upcomingDates(s).length > 0
   );
   list = list.slice().sort((a,b)=> upcomingDates(a)[0].date.localeCompare(upcomingDates(b)[0].date));
@@ -840,6 +821,7 @@ function renderModeToggle(){
   document.getElementById('modeScroll').classList.toggle('active', viewMode==='scroll');
   document.getElementById('content').classList.toggle('mode-scroll', viewMode==='scroll');
   document.getElementById('freeToggle').classList.toggle('active', onlyFree);
+  document.getElementById('todayTomorrowToggle').classList.toggle('active', onlyTodayTomorrow);
 }
 
 function renderFilters(){
@@ -925,7 +907,6 @@ function renderAdminBadge(){
   if(isAdmin){
     el.innerHTML = `
       <button class="pill admin-badge" id="modBtn">🛡️ Modération${pendingSorties.length ? `<span class="count">${pendingSorties.length}</span>` : ''}</button>
-      <button class="pill" id="visitsBtn">👁️ Visites</button>
       <button class="pill" id="bulkBtn">📥 Import</button>
       <button class="pill" id="exportBtn">📤 Export</button>
       <button class="pill" id="syncBtn">🔄 Synchroniser</button>
@@ -934,7 +915,6 @@ function renderAdminBadge(){
       <button class="pill" id="logoutBtn">Déconnexion</button>
     `;
     document.getElementById('modBtn').onclick = openModPanel;
-    document.getElementById('visitsBtn').onclick = openVisitsPanel;
     document.getElementById('bulkBtn').onclick = openBulkImport;
     document.getElementById('exportBtn').onclick = exportJson;
     document.getElementById('syncBtn').onclick = syncJson;
@@ -1260,49 +1240,6 @@ function openBulkImport(){
   };
 }
 
-async function openVisitsPanel(){
-  document.getElementById('modalRoot').innerHTML = `
-  <div class="overlay" id="overlay">
-    <div class="modal">
-      <button class="close" id="closeModal">✕ fermer</button>
-      <h2>👁️ Visites du site</h2>
-      <div id="visitsContent" style="font-family:'Space Mono',monospace; font-size:13px; color:var(--ink-soft);">Chargement...</div>
-    </div>
-  </div>`;
-  document.getElementById('overlay').onclick = (e)=>{ if(e.target.id==='overlay') closeModal(); };
-  document.getElementById('closeModal').onclick = closeModal;
-
-  const contentEl = document.getElementById('visitsContent');
-  try{
-    const snap = await getDoc(doc(db,'stats','visits'));
-    if(!snap.exists()){
-      contentEl.innerHTML = "Aucune visite enregistrée pour l'instant.";
-      return;
-    }
-    const data = snap.data();
-    const total = data.total || 0;
-    const days = data.days || {};
-    const sortedDays = Object.keys(days).sort().reverse().slice(0, 7);
-    const rowsHtml = sortedDays.length
-      ? sortedDays.map(d=>{
-          const dd = new Date(d + 'T00:00:00');
-          const lbl = dd.toLocaleDateString('fr-FR', {weekday:'short', day:'2-digit', month:'short'});
-          return `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #00000012;">
-            <span>${lbl}</span><span>${days[d]}</span>
-          </div>`;
-        }).join('')
-      : '';
-    contentEl.innerHTML = `
-      <div style="font-family:'Big Shoulders Display',sans-serif; font-size:38px; color:var(--ink); text-transform:uppercase; margin-bottom:4px;">${total}</div>
-      <div style="margin-bottom:16px;">visite${total>1?'s':''} au total (hors admin)</div>
-      ${rowsHtml ? `<div style="border-top:1px dashed #00000030; padding-top:10px;"><strong style="color:var(--ink);">7 derniers jours</strong>${rowsHtml}</div>` : ''}
-    `;
-  }catch(err){
-    console.error(err);
-    contentEl.innerHTML = "Erreur de chargement : " + err.message + "<br><br>Vérifie que les règles Firestore autorisent la lecture de la collection <code>stats</code> pour l'admin.";
-  }
-}
-
 function openModPanel(){
   document.getElementById('modalRoot').innerHTML = `
   <div class="overlay" id="modOverlay">
@@ -1359,7 +1296,7 @@ function renderBoard(){
     const dateFmt = d.toLocaleDateString('fr-FR', {day:'2-digit', month:'short'});
     return `
     <div class="flyer" data-id="${s.id}">
-      ${s.images && s.images[0] ? `<img class="flyer-img" src="${s.images[0]}" alt="${s.titre} — ${s.ville}" loading="lazy">` : ''}
+      ${s.images && s.images[0] ? `<img class="flyer-img" src="${s.images[0]}" alt="">` : ''}
       <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:10px;">
         <div style="display:flex; gap:4px; flex-wrap:wrap;">
           ${(s.cats||[]).map(c=>`<span class="flyer-cat ${catClass(c)}" style="margin-bottom:0;">${c}</span>`).join('')}
@@ -1727,6 +1664,7 @@ document.getElementById('openPublish').onclick = ()=> openPublishForm();
 document.getElementById('modeBoard').onclick = ()=>{ viewMode='board'; render(); };
 document.getElementById('modeScroll').onclick = ()=>{ viewMode='scroll'; render(); };
 document.getElementById('freeToggle').onclick = ()=>{ onlyFree = !onlyFree; render(); };
+document.getElementById('todayTomorrowToggle').onclick = ()=>{ onlyTodayTomorrow = !onlyTodayTomorrow; render(); };
 
 function renderVilleFilterBar(){
   const bar = document.getElementById('villeFilterBar');
@@ -1746,51 +1684,12 @@ function filterByVille(ville){
   document.getElementById('content').scrollTop = 0;
 }
 
-function renderJsonLd(){
-  let el = document.getElementById('jsonLdEvents');
-  if(!el){
-    el = document.createElement('script');
-    el.type = 'application/ld+json';
-    el.id = 'jsonLdEvents';
-    document.head.appendChild(el);
-  }
-  const list = getFilteredList().slice(0, 30); // limite raisonnable par page
-  if(list.length === 0){
-    el.textContent = '';
-    return;
-  }
-  const items = list.map(s=>{
-    const upc = upcomingDates(s);
-    const first = upc[0];
-    return {
-      "@type": "Event",
-      "name": s.titre,
-      "startDate": first.date,
-      "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
-      "eventStatus": "https://schema.org/EventScheduled",
-      "location": {
-        "@type": "Place",
-        "name": s.ville,
-        "address": s.adresse || s.ville + ", Bouches-du-Rhône, France"
-      },
-      "description": s.desc,
-      "isAccessibleForFree": !!s.gratuit,
-      "image": (s.images && s.images.length) ? s.images : undefined
-    };
-  });
-  el.textContent = JSON.stringify({
-    "@context": "https://schema.org",
-    "@graph": items
-  }, null, 0);
-}
-
 function render(){
   renderModeToggle();
   renderAdminBadge();
   renderVilleFilterBar();
   renderBoard();
   renderScrollFeed();
-  renderJsonLd();
 }
 render();
 </script>
